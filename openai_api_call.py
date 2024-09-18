@@ -19,9 +19,11 @@ and follows the Annotator Steps and provides the answer in the mentioned Output 
 
 model = "gpt-4o"
 
-def format_content(is_annotated: int, question: str, annotator_steps: str = None, 
-    output_format: str = "Provide only the answer to the question.") -> str:
-        
+def format_content(
+is_annotated: int,
+question: str,
+annotator_steps: str = None, 
+output_format: str = "Provide only the answer to the question.") -> str:
         """
         Formats the content based on whether it is annotated or not, and returns the formatted output.
 
@@ -101,3 +103,9 @@ def image_validation_prompt(system_content: str, validation_content: str, imageu
     )
     
     return response.choices[0].message.content
+
+def upload_file(filename: str, file_path: str) -> dict[str, any]:
+     return client.files.create(
+          file=open(file_path, "rb"),
+          purpose="assistants"
+          )
