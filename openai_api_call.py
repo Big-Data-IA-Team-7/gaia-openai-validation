@@ -99,7 +99,7 @@ class OpenAIClient:
         )
         return response.choices[0].message.content
     
-    def file_validation_prompt(self, file_path: str, validation_content: str) -> str:
+    def file_validation_prompt(self, file_path: str, system_content: str, validation_content: str) -> str:
         """
         Sends a validation prompt with a file to the model and returns the response.
 
@@ -111,7 +111,7 @@ class OpenAIClient:
             str: The model's response or the run status if not completed.
         """
         file_assistant = self.client.beta.assistants.create(
-            instructions=self.assistant_instruction,
+            instructions=self.assistant_instruction + system_content,
             model=self.model,
             tools=[{"type": "file_search"}],
         )
@@ -138,7 +138,7 @@ class OpenAIClient:
 
             self.cleanup_resources(file_assistant.id, query_file.id, empty_thread.id)
 
-            return messages
+            return messages.data[0].content[0].text.value
         else:
             
             self.cleanup_resources(file_assistant.id, query_file.id, empty_thread.id)
