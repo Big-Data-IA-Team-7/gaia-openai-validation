@@ -7,8 +7,8 @@ from PyPDF2 import PdfReader  # For PDF handling
 import io
 
 # AWS credentials
-AWS_ACCESS_KEY = 'AKIAW4ZCSKQUAYNTCLVN'
-AWS_SECRET_KEY = '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'
+AWS_ACCESS_KEY = ''
+AWS_SECRET_KEY = ''
 
 # Initialize S3 client
 s3 = boto3.client('s3',
