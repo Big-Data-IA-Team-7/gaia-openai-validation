@@ -91,12 +91,15 @@ def render_predicting_page(data_frame):
     # Proceed only if the user selects a valid question (not the placeholder)
     if question_selected != placeholder_text:
         st.text_area("Selected Question:", question_selected)
-
         # Answer to the selected Question
         validate_answer = data_frame[data_frame['Question'] == question_selected]
         validate_answer = validate_answer['Final answer'].iloc[0]
         st.write('Selected Question Answer is:', validate_answer)
-
+        file_name=process_data_and_generate_url(question_selected)
+        if file_name==1:
+            st.write('No file is associated with this question')
+        else:
+            st.write('download file:',file_name)
         # Button for Asking Question to GPT
         if not st.session_state.ask_gpt_clicked:  # Check if Ask GPT hasn't been clicked yet
             button_values = st.button('Ask GPT')
@@ -105,6 +108,7 @@ def render_predicting_page(data_frame):
                 validation_content = format_content(0, question_selected)
                 ai_response = validation_prompt(val_system_content, validation_content)
                 st.session_state.ai_response = ai_response
+                
                 if ai_response not in validate_answer:
                     st.session_state.show_next_steps = False
                     st.session_state.show_no_response = False  # Reset the buttons' state
@@ -140,13 +144,8 @@ def render_predicting_page(data_frame):
                     steps = steps['Annotator Metadata'].iloc[0]
                     steps_dict = json.loads(steps)
                     steps_text = steps_dict.get('Steps', 'No steps found')
-                    file_name=process_data_and_generate_url(question_selected)
-                    if file_name==1:
-                        st.write('No file is associated with this question')
-                    else:
-                        st.write('download file:',file_name)
-                    st.text_area('Steps:', steps_text)
-                    st.session_state.steps_text = steps_text
+                    steps_question=st.text_area('Steps:', steps_text)
+                    st.session_state.steps_text = steps_question
 
                 # Show Ask GPT Again button if needed
                 if st.session_state.show_ask_gpt_again:
