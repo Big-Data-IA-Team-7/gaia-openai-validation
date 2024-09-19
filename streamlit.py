@@ -1,7 +1,7 @@
 import streamlit as st
 import json
 from read import fetch_data_from_db
-from openai_api_call import validation_prompt, format_content, val_system_content, ann_system_content
+from openai_api_call import OpenAIClient
 
 def apply_custom_css():
     """Apply custom CSS for button styling."""
@@ -42,7 +42,7 @@ def render_home_page():
     st.write("2. Ram Kumar Ramasamy Pandiaraj")
     st.write("3. Dipen Patel")
 
-def render_predicting_page(data_frame):
+def render_predicting_page(data_frame, openai_client):
     """Render the Predicting page content with a selectbox that initially shows no values."""
     
     # Initially show a placeholder value
@@ -76,12 +76,12 @@ def render_predicting_page(data_frame):
         #Button for Asking Question to GPT
         button_values = st.button('Ask GPT')
         if button_values:
-            validation_content = format_content(0, question_selected)
-            ai_response = validation_prompt(val_system_content, validation_content)
+            validation_content = openai_client.format_content(0, question_selected)
+            ai_response = openai_client.validation_prompt(openai_client.val_system_content, validation_content)
             st.write(ai_response)
             if ai_response not in validate_answer:
-                ann_validation_content = format_content(1, question_selected, steps_text)
-                ann_ai_response = validation_prompt(ann_system_content, ann_validation_content)
+                ann_validation_content = openai_client.format_content(1, question_selected, steps_text)
+                ann_ai_response = openai_client.validation_prompt(openai_client.ann_system_content, ann_validation_content)
                 st.write(ann_ai_response)
     else:
         st.write("Please select a valid question to proceed.")
@@ -96,6 +96,8 @@ def main():
     """Main function to control the flow of the app."""
     apply_custom_css()
     setup_session_state()
+
+    openai_client = OpenAIClient()
     
     # Call the function and store the result in a DataFrame
     data_frame = fetch_data_from_db()
@@ -106,7 +108,7 @@ def main():
         render_home_page()
     elif st.session_state.page == "Predicting":
         if data_frame is not None:
-            render_predicting_page(data_frame)
+            render_predicting_page(data_frame, openai_client)
         else:
             st.write("Failed to retrieve data")
     elif st.session_state.page == "Dashboard":
