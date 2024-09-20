@@ -3,17 +3,27 @@ import pandas as pd
 from urllib.parse import urlparse
 from read import fetch_data_from_db
 import os
+from dotenv import load_dotenv
 from PyPDF2 import PdfReader  # For PDF handling
 import io
+import requests
+import tempfile
+import os
+from urllib.parse import urlparse, unquote
+import mimetypes
+
+
+# Load .env file
+load_dotenv()
 
 # AWS credentials
-AWS_ACCESS_KEY = ''
-AWS_SECRET_KEY = ''
+aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
+aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
 
 # Initialize S3 client
 s3 = boto3.client('s3',
-                  aws_access_key_id=AWS_ACCESS_KEY,
-                  aws_secret_access_key=AWS_SECRET_KEY)
+                  aws_access_key_id=aws_access_key_id,
+                  aws_secret_access_key=aws_secret_access_key)
 
 def parse_s3_url(url):
     """Parse the S3 URL to extract bucket name and object key."""
@@ -66,3 +76,22 @@ def process_data_and_generate_url(Question):
         print("Failed to fetch data from the database")
     
     
+def download_file(url):
+    # Parse the URL to extract the file name
+    parsed_url = urlparse(url)
+    path = unquote(parsed_url.path)
+    filename = os.path.basename(path)
+    extension = os.path.splitext(filename)[1]
+    
+    # Create a temporary file with the correct extension
+    temp = tempfile.NamedTemporaryFile(delete=False, suffix=extension)
+    
+    # Get the file from the URL
+    response = requests.get(url)
+    response.raise_for_status()  # Check if the download was successful
+    
+    # Write the content to the temporary file
+    temp.write(response.content)
+    temp.close()  # Close the file to finalize writing
+    
+    return temp.name  # Return the path to the temporary file
