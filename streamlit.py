@@ -8,6 +8,8 @@ import tempfile
 import os
 from urllib.parse import urlparse, unquote
 import mimetypes
+from datetime import datetime
+from data_storage import insert_model_response
 
 def apply_custom_css():
     """Apply custom CSS for button styling."""
@@ -98,6 +100,7 @@ def render_predicting_page(data_frame, openai_client):
         st.text_area("Selected Question:", question_selected)
         # Answer to the selected Question
         validate_answer = data_frame[data_frame['Question'] == question_selected]
+        task_id_sel = validate_answer['task_id'].iloc[0]
         validate_answer = validate_answer['Final answer'].iloc[0]
         st.write('Selected Question Answer is:', validate_answer)
         file_name=process_data_and_generate_url(question_selected)
@@ -122,6 +125,7 @@ def render_predicting_page(data_frame, openai_client):
                     st.session_state.show_no_response = False  # Reset the buttons' state
                 else:
                     st.success("GPT Predicted correct Answer")
+                    insert_model_response(task_id_sel, datetime.now().date(), 'gpt-4o', ai_response, 'correct as-is')
 
         if st.session_state.ask_gpt_clicked:
             ai_response = st.session_state.ai_response
@@ -167,9 +171,11 @@ def render_predicting_page(data_frame, openai_client):
                         if ann_ai_response not in validate_answer:
                             print('validate_answer',validate_answer)
                             st.error("Sorry!!! GPT Unable to predict the correct Answer after the steps provided ")
+                            insert_model_response(task_id_sel, datetime.now().date(), 'gpt-4o', ai_response, 'wrong answer')
                         else:
                             print('validate_answer',validate_answer)
                             st.success('GPT Predicted the correct Answer')
+                            insert_model_response(task_id_sel, datetime.now().date(), 'gpt-4o', ai_response, 'correct after modifying')
     else:
         st.write("Please select a valid question to proceed.")
         
