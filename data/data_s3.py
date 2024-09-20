@@ -1,20 +1,9 @@
 import boto3
-import pandas as pd
-from urllib.parse import urlparse
-from read import fetch_data_from_db
+from urllib.parse import urlparse, unquote
+from data.data_read import fetch_data_from_db
 import os
-from dotenv import load_dotenv
-from PyPDF2 import PdfReader  # For PDF handling
-import io
 import requests
 import tempfile
-import os
-from urllib.parse import urlparse, unquote
-import mimetypes
-
-
-# Load .env file
-load_dotenv()
 
 # AWS credentials
 aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')

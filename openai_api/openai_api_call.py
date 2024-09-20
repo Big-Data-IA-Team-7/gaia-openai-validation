@@ -1,8 +1,4 @@
-from dotenv import load_dotenv
 from openai import OpenAI
-
-# Load environment variables from .env file
-load_env_variables = load_dotenv()
 
 class OpenAIClient:
     def __init__(self, model: str = "gpt-4o"):

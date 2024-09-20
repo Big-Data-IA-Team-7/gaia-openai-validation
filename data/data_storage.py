@@ -1,19 +1,13 @@
 import os
 from datasets import load_dataset
-from dotenv import load_dotenv
 from huggingface_hub import login
 import json
-import pymysql
 import mysql.connector
 import boto3
 import requests
 from mysql.connector import Error
-from botocore.exceptions import NoCredentialsError
 from sqlalchemy import create_engine, text
 from datetime import datetime
-
-# Load .env file
-load_dotenv()
 
 # Getting in Environmental variables
 hugging_face_token = os.getenv('HUGGINGFACE_TOKEN')
@@ -45,14 +39,8 @@ login(token=hugging_face_token)
 # Load the GAIA dataset (including the train split)
 ds = load_dataset("gaia-benchmark/GAIA", "2023_all")
 
-
-
-
 # Convert the 'train' split into a pandas DataFrame
 train_df = ds['validation'].to_pandas()
-
-# Display the first few rows of the DataFrame
-#print(train_df.head())
 
 #to handle dictionary value for ANNOTATOR METADATA
 train_df['Annotator Metadata'] = train_df['Annotator Metadata'].apply(json.dumps)

@@ -7,3 +7,4 @@ def render_home_page():
     st.write("1. Pragnesh Anekal")
     st.write("2. Ram Kumar Ramasamy Pandiaraj")
     st.write("3. Dipen Patel")
+    st.write("3. Ramy Solanki")
