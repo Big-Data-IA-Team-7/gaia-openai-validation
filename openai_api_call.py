@@ -1,219 +1,111 @@
 from dotenv import load_dotenv
+import os
 from openai import OpenAI
 
-# Load environment variables from .env file
-load_env_variables = load_dotenv()
+load_dotenv()
 
-class OpenAIClient:
-    def __init__(self, model: str = "gpt-4o"):
-        """
-        Initializes the OpenAIClient with a specified model.
+client = OpenAI()
 
-        Args:
-            model (str): The model ID to be used for generating completions (default: "gpt-4o").
-        """
-        self.client = OpenAI()  # Initialize OpenAI client
-        self.model = model  # Set model (default is gpt-4o)
-
-        # System content strings
-        self.val_system_content = """Every prompt will begin with the text \"Question:\" followed by the question \
+val_system_content = """Every prompt will begin with the text \"Question:\" followed by the question \
 enclosed in triple backticks. The text \"Output Format:\" explains how the Question \
 must be answered. You are an AI that reads the Question enclosed in triple backticks \
 and provides the answer in the mentioned Output Format."""
 
-        self.ann_system_content = """Every prompt will begin with the text \"Question:\" followed by the question \
+ann_system_content = """Every prompt will begin with the text \"Question:\" followed by the question \
 enclosed in triple backticks. The \"Annotator Steps:\" mentions the steps that you should take \
 for answering the question. The text \"Output Format:\" explains how the Question \
 output must be formatted. You are an AI that reads the Question enclosed in triple backticks \
 and follows the Annotator Steps and provides the answer in the mentioned Output Format."""
 
-        self.output_format = "Provide only the answer to the question."
+model = "gpt-4o"
 
-        self.assistant_instruction = """You are an assistant that answers any questions relevant to the \
-file that is uploaded in the thread. """
-    
-    def format_content(self, is_annotated: int, question: str, annotator_steps: str = None) -> str:
+def format_content(
+is_annotated: int,
+question: str,
+annotator_steps: str = None, 
+output_format: str = "Provide only the answer to the question.") -> str:
         """
-        Formats the content based on whether it is annotated or not.
+        Formats the content based on whether it is annotated or not, and returns the formatted output.
 
         Args:
             is_annotated (int): Indicates whether the content is annotated (1 for yes, 0 for no).
             question (str): The question that requires an answer.
-            annotator_steps (str, optional): The steps taken by the annotator.
-            output_format (str, optional): The desired format of the output.
+            annotator_steps (str, optional): The steps taken by the annotator. Default is an empty string.
+            output_format (str, optional): The desired format of the output. Default is "Provide only the answer to the question.".
 
         Returns:
-            str: The formatted content.
+            str: The formatted content based on the input parameters.
         """
         if not is_annotated:
-            return f"Question: ```{question}```\nOutput Format: {self.output_format}\n"
+            return f"""Question: ```{question}```
+            Output Format: {output_format}
+            """
         else:
-            return f"Question: ```{question}```\nAnnotator Steps: {annotator_steps}\nOutput Format: {self.output_format}\n"
-        
-    def validation_prompt(self, system_content: str, user_content: str) -> str:
-        """
-        Sends a validation prompt to the model and returns the model's response.
+            return f"""Question: ```{question}```
+            Annotator Steps: {annotator_steps}
+            Output Format: {output_format}
+            """
 
-        Args:
-            system_content (str): The system message that sets the context for the model.
-            user_content (str): The user message to validate or respond to.
+def validation_prompt(system_content: str, user_content: str, model: str = "gpt-4o") -> str:
+    """
+    Sends a validation prompt to the specified language model and returns the model's response.
 
-        Returns:
-            str: The model's response.
-        """
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {"role": "system", "content": system_content},
-                {"role": "user", "content": user_content}
-            ],
-            max_tokens=75,
-        )
-        return response.choices[0].message.content
+    Args:
+        system_content (str): The system message that sets the context or behavior for the model.
+        validation_content (str): The user message that you want the model to validate or respond to.
+        model (str): The model ID to be used for generating the completion (e.g. 'gpt-4o').
+
+    Returns:
+        str: The content of the model's response.
+    """
+    MODEL = model
+    response = client.chat.completions.create(
+        model=MODEL,
+        messages=[
+            {"role": "system", "content": system_content},
+            {"role": "user", "content": user_content}
+        ],
+        max_tokens=75,
+    )
     
-    def image_validation_prompt(self, system_content: str, validation_content: str, imageurl: str) -> str:
-        """
-        Sends a validation prompt with an image to the model and returns the response.
+    return response.choices[0].message.content
 
-        Args:
-            system_content (str): The system message setting the context.
-            validation_content (str): The user message to validate.
-            imageurl (str): The URL of the image to validate.
+def image_validation_prompt(system_content: str, validation_content: str, imageurl: str, model: str = "gpt-4o") -> str:
+    """
+    Sends a validation prompt with an image to the specified language model and returns the model's response.
 
-        Returns:
-            str: The model's response.
-        """
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {"role": "system", "content": system_content},
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": validation_content},
-                        {"type": "image_url", "image_url": imageurl},
-                    ],
-                }
-            ],
-            max_tokens=75,
-        )
-        return response.choices[0].message.content
+    Args:
+        system_content (str): The system message that sets the context or behavior for the model.
+        validation_content (str): The user message that you want the model to validate or respond to.
+        imageurl (str): The url of the image that you want the model to validate or respond to.
+        model (str): The model ID to be used for generating the completion (e.g. 'gpt-4o').
+
+    Returns:
+        str: The content of the model's response.
+    """
+    MODEL = model
+    response = client.chat.completions.create(
+        model=MODEL,
+        messages=[
+            {"role": "system", "content": system_content},
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": validation_content},
+                    {
+                        "type": "image_url",
+                        "image_url": imageurl,
+                    },
+                ],
+            }
+        ],
+        max_tokens=75,
+    )
     
-    def file_validation_prompt(self, file_path: str, system_content: str, validation_content: str) -> str:
-        """
-        Sends a validation prompt with a file to the model and returns the response.
+    return response.choices[0].message.content
 
-        Args:
-            file_path (str): The path to the file to be validated.
-            validation_content (str): The user message to validate.
-
-        Returns:
-            str: The model's response or the run status if not completed.
-        """
-        file_assistant = self.client.beta.assistants.create(
-            instructions=self.assistant_instruction + system_content,
-            model=self.model,
-            tools=[{"type": "file_search"}],
-        )
-
-        query_file = self.client.files.create(file=open(file_path, "rb"), purpose="assistants")
-        empty_thread = self.client.beta.threads.create()
-
-        self.client.beta.threads.messages.create(
-            empty_thread.id,
-            role="user",
-            content=validation_content,
-            attachments=[{"file_id": query_file.id, "tools": [{"type": "file_search"}]}]
-        )
-
-        run = self.client.beta.threads.runs.create_and_poll(
-            thread_id=empty_thread.id,
-            assistant_id=file_assistant.id,
-        )
-
-        if run.status == 'completed':
-            messages = self.client.beta.threads.messages.list(
-                thread_id=run.thread_id
-            )
-
-            self.cleanup_resources(file_assistant.id, query_file.id, empty_thread.id)
-
-            return messages.data[0].content[0].text.value
-        else:
-            
-            self.cleanup_resources(file_assistant.id, query_file.id, empty_thread.id)
-            
-            return run.status
-        
-    def xlsx_file_validation_prompt(self, file_path: str, validation_content: str) -> str:
-        """
-        Sends a validation prompt with an XLSX file to the model and returns the response.
-
-        Args:
-            file_path (str): The path to the XLSX file to validate.
-            validation_content (str): The user message to validate.
-
-        Returns:
-            str: The model's response or the run status if not completed.
-        """
-        file_assistant = self.client.beta.assistants.create(
-            instructions=self.assistant_instruction,
-            model=self.model,
-            tools=[{"type": "code_interpreter"}],
-        )
-
-        query_file = self.client.files.create(file=open(file_path, "rb"), purpose="assistants")
-        empty_thread = self.client.beta.threads.create()
-
-        self.client.beta.threads.messages.create(
-            empty_thread.id,
-            role="user",
-            content=validation_content,
-            attachments=[{"file_id": query_file.id, "tools": [{"type": "code_interpreter"}]}]
-        )
-
-        run = self.client.beta.threads.runs.create_and_poll(
-            thread_id=empty_thread.id,
-            assistant_id=file_assistant.id,
-        )
-
-        if run.status == 'completed':
-            messages = self.client.beta.threads.messages.list(
-                thread_id=empty_thread.id
-            )
-
-            self.cleanup_resources(file_assistant.id, query_file.id, empty_thread.id)
-
-            return messages
-        else:
-
-            self.cleanup_resources(file_assistant.id, query_file.id, empty_thread.id)
-
-            return run.status
-    
-    def cleanup_resources(self, assistant_id: str, file_id: str, thread_id: str) -> None:
-        """
-        Cleans up the resources by deleting the assistant, file, and thread after the validation is complete.
-
-        Args:
-            assistant_id (str): The ID of the assistant to be deleted.
-            file_id (str): The ID of the file to be deleted.
-            thread_id (str): The ID of the thread to be deleted.
-
-        Returns:
-            None
-        """
-        try:
-            # Delete the assistant
-            self.client.beta.assistants.delete(assistant_id)
-            print(f"Assistant {assistant_id} deleted successfully.")
-
-            # Delete the file
-            self.client.files.delete(file_id)
-            print(f"File {file_id} deleted successfully.")
-
-            # Delete the thread
-            self.client.beta.threads.delete(thread_id)
-            print(f"Thread {thread_id} deleted successfully.")
-        except Exception as e:
-            print(f"Error during resource cleanup: {e}")
+def upload_file(filename: str, file_path: str) -> dict[str, any]:
+     return client.files.create(
+          file=open(file_path, "rb"),
+          purpose="assistants"
+          )
