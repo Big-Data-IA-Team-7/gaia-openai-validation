@@ -17,5 +17,3 @@ GAIA-OPENAI-VALIDATION/
 │   └── streamlit_predicting_page.py
 ├── app.py
 ```
-
-Example text
