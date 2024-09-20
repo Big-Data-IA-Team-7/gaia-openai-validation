@@ -4,11 +4,11 @@ load_dotenv()
 import streamlit as st
 from data.data_read import fetch_data_from_db
 from openai_api.openai_api_call import OpenAIClient
-from streamilt.streamlit_custom_css import apply_custom_css
-from streamilt.streamlit_home_page import render_home_page
-from streamilt.streamlit_dashboard_page import render_dashboard_page
-from streamilt.streamlit_predicting_page import render_predicting_page
-from streamilt.streamlit_predicting_page import reset_interaction_state
+from streamlit_ui.streamlit_custom_css import apply_custom_css
+from streamlit_ui.streamlit_home_page import render_home_page
+from streamlit_ui.streamlit_dashboard_page import render_dashboard_page
+from streamlit_ui.streamlit_predicting_page import render_predicting_page
+from streamlit_ui.streamlit_predicting_page import reset_interaction_state
 
 
 def setup_session_state():
