@@ -1,8 +1,8 @@
 import streamlit as st
-from data_storage import insert_model_response
+from data.data_storage import insert_model_response
 from datetime import datetime
-from datas3 import download_file
-from datas3 import process_data_and_generate_url
+from data.data_s3 import download_file
+from data.data_s3 import process_data_and_generate_url
 import json
 
 # Reset session state for the button interaction

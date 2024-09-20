@@ -1,11 +1,6 @@
 import mysql.connector
 import pandas as pd
-import os
-from data_storage import get_db_connection
-
-
-
-
+from data.data_storage import get_db_connection
 
 def fetch_data_from_db():
     try:
