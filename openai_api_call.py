@@ -17,20 +17,20 @@ class OpenAIClient:
 
         # System content strings
         self.val_system_content = """Every prompt will begin with the text \"Question:\" followed by the question \
-        enclosed in triple backticks. The text \"Output Format:\" explains how the Question \
-        must be answered. You are an AI that reads the Question enclosed in triple backticks \
-        and provides the answer in the mentioned Output Format."""
+enclosed in triple backticks. The text \"Output Format:\" explains how the Question \
+must be answered. You are an AI that reads the Question enclosed in triple backticks \
+and provides the answer in the mentioned Output Format."""
 
         self.ann_system_content = """Every prompt will begin with the text \"Question:\" followed by the question \
-        enclosed in triple backticks. The \"Annotator Steps:\" mentions the steps that you should take \
-        for answering the question. The text \"Output Format:\" explains how the Question \
-        output must be formatted. You are an AI that reads the Question enclosed in triple backticks \
-        and follows the Annotator Steps and provides the answer in the mentioned Output Format."""
+enclosed in triple backticks. The \"Annotator Steps:\" mentions the steps that you should take \
+for answering the question. The text \"Output Format:\" explains how the Question \
+output must be formatted. You are an AI that reads the Question enclosed in triple backticks \
+and follows the Annotator Steps and provides the answer in the mentioned Output Format."""
 
         self.output_format = "Provide only the answer to the question."
 
         self.assistant_instruction = """You are an assistant that answers any questions relevant to the \
-        file that is uploaded in the thread."""
+file that is uploaded in the thread. """
     
     def format_content(self, is_annotated: int, question: str, annotator_steps: str = None) -> str:
         """

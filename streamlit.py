@@ -3,6 +3,11 @@ import json
 from read import fetch_data_from_db
 from openai_api_call import OpenAIClient
 from datas3 import process_data_and_generate_url
+import requests
+import tempfile
+import os
+from urllib.parse import urlparse, unquote
+import mimetypes
 
 def apply_custom_css():
     """Apply custom CSS for button styling."""
@@ -99,16 +104,16 @@ def render_predicting_page(data_frame, openai_client):
         if file_name == 1:
             st.write('No file is associated with this question')
         else:
+            file_path = download_file(file_name)
             st.write('download file:',file_name)
-            print(type(file_name))
         # Button for Asking Question to GPT
         if not st.session_state.ask_gpt_clicked:  # Check if Ask GPT hasn't been clicked yet
             button_values = st.button('Ask GPT')
             if button_values:
                 st.session_state.ask_gpt_clicked = True  # Set Ask GPT to True when clicked
                 validation_content = openai_client.format_content(0, question_selected)
-                if file_name:
-                   ai_response = openai_client.file_validation_prompt(file_name, openai_client.val_system_content, validation_content)
+                if file_name != 1:
+                   ai_response = openai_client.file_validation_prompt(file_path, openai_client.val_system_content, validation_content)
                 else:
                    ai_response = openai_client.validation_prompt(openai_client.val_system_content, validation_content)
                 st.session_state.ai_response = ai_response
@@ -154,8 +159,8 @@ def render_predicting_page(data_frame, openai_client):
                 if st.session_state.show_ask_gpt_again:
                     if st.button("Ask GPT Again"):
                         ann_validation_content = openai_client.format_content(1, question_selected, st.session_state.steps_text)
-                        if file_name:
-                            ai_response = openai_client.file_validation_prompt(file_name, openai_client.ann_system_content, validation_content)
+                        if file_name != 1:
+                            ann_ai_response = openai_client.file_validation_prompt(file_path, openai_client.ann_system_content, ann_validation_content)
                         else:
                             ann_ai_response = openai_client.validation_prompt(openai_client.ann_system_content, ann_validation_content)
                         st.write(ann_ai_response)
@@ -172,6 +177,26 @@ def render_dashboard_page():
     """Render the Dashboard page content."""
     st.title("Dashboard")
     st.write("You are now on Dashboard page.")
+
+def download_file(url):
+    # Parse the URL to extract the file name
+    parsed_url = urlparse(url)
+    path = unquote(parsed_url.path)
+    filename = os.path.basename(path)
+    extension = os.path.splitext(filename)[1]
+    
+    # Create a temporary file with the correct extension
+    temp = tempfile.NamedTemporaryFile(delete=False, suffix=extension)
+    
+    # Get the file from the URL
+    response = requests.get(url)
+    response.raise_for_status()  # Check if the download was successful
+    
+    # Write the content to the temporary file
+    temp.write(response.content)
+    temp.close()  # Close the file to finalize writing
+    
+    return temp.name  # Return the path to the temporary file
 
 def main():
     """Main function to control the flow of the app."""
