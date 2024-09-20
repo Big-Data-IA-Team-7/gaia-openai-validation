@@ -3,17 +3,21 @@ import pandas as pd
 from urllib.parse import urlparse
 from read import fetch_data_from_db
 import os
+from dotenv import load_dotenv
 from PyPDF2 import PdfReader  # For PDF handling
 import io
 
+# Load .env file
+load_dotenv()
+
 # AWS credentials
-AWS_ACCESS_KEY = 'AKIAW4ZCSKQUAYNTCLVN'
-AWS_SECRET_KEY = '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'
+aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
+aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
 
 # Initialize S3 client
 s3 = boto3.client('s3',
-                  aws_access_key_id=AWS_ACCESS_KEY,
-                  aws_secret_access_key=AWS_SECRET_KEY)
+                  aws_access_key_id=aws_access_key_id,
+                  aws_secret_access_key=aws_secret_access_key)
 
 def parse_s3_url(url):
     """Parse the S3 URL to extract bucket name and object key."""
