@@ -1,8 +1,7 @@
 import streamlit as st
-from data.data_storage import insert_model_response
+from data.data_read import insert_model_response
 from datetime import datetime
-from data.data_s3 import download_file
-from data.data_s3 import process_data_and_generate_url
+from data.data_s3 import download_file, process_data_and_generate_url, RETRIEVAL_EXT, CI_EXT, IMG_EXT, MP3_EXT
 import json
 
 # Reset session state for the button interaction
@@ -39,23 +38,39 @@ def handle_file_processing(question_selected):
         st.write('No file is associated with this question')
         return None
     else:
-        file_path = download_file(file_name)
+        loaded_file = download_file(file_name)
         st.write('Download file:', file_name)
-        return file_path
+        return loaded_file
 
 # Ask GPT and handle AI responses
-def ask_gpt(openai_client, question_selected, validate_answer, file_path=None):
+def ask_gpt(openai_client, system_content, question_selected, format_type, loaded_file=None, annotated_steps=None):
     """Ask GPT for a response and store it in the session state."""
-    validation_content = openai_client.format_content(0, question_selected)
-    if file_path:
-        ai_response = openai_client.file_validation_prompt(file_path, openai_client.val_system_content, validation_content)
+    if format_type == 3:
+        validation_content = openai_client.format_content(format_type, question_selected, None, annotated_steps)
+    elif format_type == 0:
+        validation_content = openai_client.format_content(format_type, question_selected)
+    if loaded_file:
+        if loaded_file["extension"] in RETRIEVAL_EXT:
+            ai_response = openai_client.file_validation_prompt(loaded_file["path"], system_content, validation_content)
+        elif loaded_file["extension"] in CI_EXT:
+            ai_response = openai_client.ci_file_validation_prompt(loaded_file["path"], system_content, validation_content)
+        elif loaded_file["extension"] in IMG_EXT:
+            ai_response = openai_client.image_validation_prompt(loaded_file["url"], system_content, validation_content)
+        else:
+            transcription = openai_client.stt_validation_prompt(loaded_file["path"], system_content)
+            if format_type == 1:
+                validation_content = openai_client.format_content(format_type, question_selected, transcription)
+            elif format_type == 2:
+                validation_content = openai_client.format_content(format_type, question_selected, transcription, annotated_steps)
+            ai_response = openai_client.validation_prompt(system_content, validation_content)
+
     else:
-        ai_response = openai_client.validation_prompt(openai_client.val_system_content, validation_content)
+        ai_response = openai_client.validation_prompt(system_content, validation_content)
     st.session_state.ai_response = ai_response
     return ai_response
 
 # Show next steps or handle wrong predictions
-def handle_wrong_answer_flow(data_frame, question_selected, openai_client, validate_answer, file_path=None):
+def handle_wrong_answer_flow(data_frame, question_selected, openai_client, validate_answer, loaded_file=None):
     """Handle wrong answers by showing next steps or allowing GPT to be asked again."""
     steps = data_frame[data_frame['Question'] == question_selected]
     steps = steps['Annotator Metadata'].iloc[0]
@@ -65,12 +80,16 @@ def handle_wrong_answer_flow(data_frame, question_selected, openai_client, valid
     st.session_state.steps_text = st.text_area('Steps:', steps_text)
 
     if st.button("Ask GPT Again"):
-        ann_validation_content = openai_client.format_content(1, question_selected, st.session_state.steps_text)
-        if file_path:
-            ann_ai_response = openai_client.file_validation_prompt(file_path, openai_client.ann_system_content, ann_validation_content)
+        if loaded_file:
+            if loaded_file["extension"] in MP3_EXT:
+                ann_ai_response = ask_gpt(openai_client, openai_client.ann_audio_system_content, 
+                                    question_selected, 2,loaded_file, st.session_state.steps_text)
+            else:
+                ann_ai_response = ask_gpt(openai_client, openai_client.ann_system_content, 
+                                question_selected, 3, loaded_file, st.session_state.steps_text)
         else:
-            ann_ai_response = openai_client.validation_prompt(openai_client.ann_system_content, ann_validation_content)
-
+            ann_ai_response = ask_gpt(openai_client, openai_client.ann_system_content, 
+                                question_selected, 3, loaded_file, st.session_state.steps_text)
         st.write(ann_ai_response)
 
         if ann_ai_response not in validate_answer:
@@ -94,12 +113,22 @@ def render_predicting_page(data_frame, openai_client):
 
         st.session_state.task_id_sel = task_id_sel
 
-        file_path = handle_file_processing(question_selected)
+        loaded_file = handle_file_processing(question_selected)
 
         if not st.session_state.ask_gpt_clicked:
             if st.button('Ask GPT'):
                 st.session_state.ask_gpt_clicked = True
-                ai_response = ask_gpt(openai_client, question_selected, validate_answer, file_path)
+                if loaded_file:
+                    if loaded_file["extension"] in MP3_EXT:
+                        system_content = openai_client.audio_system_content
+                        format_type = 1
+                    else:
+                        system_content = openai_client.val_system_content
+                        format_type = 0
+                else:
+                    system_content = openai_client.val_system_content
+                    format_type = 0
+                ai_response = ask_gpt(openai_client, system_content, question_selected, format_type, loaded_file)
 
                 if ai_response not in validate_answer:
                     st.session_state.show_next_steps = False
@@ -131,6 +160,6 @@ def render_predicting_page(data_frame, openai_client):
                                 st.experimental_rerun()
 
                 if st.session_state.show_next_steps:
-                    handle_wrong_answer_flow(data_frame, question_selected, openai_client, validate_answer, file_path)
+                    handle_wrong_answer_flow(data_frame, question_selected, openai_client, validate_answer, loaded_file)
     else:
         st.write("Please select a valid question to proceed.")
