@@ -23,12 +23,25 @@ for answering the question. The text \"Output Format:\" explains how the Questio
 output must be formatted. You are an AI that reads the Question enclosed in triple backticks \
 and follows the Annotator Steps and provides the answer in the mentioned Output Format."""
 
+        self.audio_system_content = """Every prompt will begin with the text \"Question:\" followed by the question \
+enclosed in triple backticks. The question will mention that there is an .mp3 file attached however the .mp3 file has \
+already been transcribed and the transcribed text is attached after the text: \"Transcription:\". The text \"Output Format:\" \
+explains how the Question must be answered. You are an AI that reads the Question enclosed in triple backticks and \
+the Transcript and provides the answer in the mentioned Output Format."""
+
+        self.ann_audio_system_content = """Every prompt will begin with the text \"Question:\" followed by the question \
+enclosed in triple backticks. The question will mention that there is an .mp3 file attached however the .mp3 file has \
+already been transcribed and the transcribed text is attached after the text: \"Transcription:\". The \"Annotator Steps:\" \
+mentions the steps that you should take for answering the question. The text \"Output Format:\" \
+explains how the Question must be answered. You are an AI that reads the Question enclosed in triple backticks and \
+the Transcript and follows the Annotator Steps and provides the answer in the mentioned Output Format."""
+
         self.output_format = "Provide only the answer to the question."
 
         self.assistant_instruction = """You are an assistant that answers any questions relevant to the \
 file that is uploaded in the thread. """
     
-    def format_content(self, is_annotated: int, question: str, annotator_steps: str = None) -> str:
+    def format_content(self, format_type: int, question: str, transcription: str = None, annotator_steps: str = None) -> str:
         """
         Formats the content based on whether it is annotated or not.
 
@@ -41,8 +54,12 @@ file that is uploaded in the thread. """
         Returns:
             str: The formatted content.
         """
-        if not is_annotated:
+        if format_type == 0:
             return f"Question: ```{question}```\nOutput Format: {self.output_format}\n"
+        elif format_type == 1:
+            return f"Question: ```{question}```\nTranscription: {transcription}\nOutput Format: {self.output_format}\n"
+        elif format_type == 2:
+            return f"Question: ```{question}```\nTranscription: {transcription}\nAnnotator Steps: {annotator_steps}\nOutput Format: {self.output_format}\n"
         else:
             return f"Question: ```{question}```\nAnnotator Steps: {annotator_steps}\nOutput Format: {self.output_format}\n"
         
@@ -67,7 +84,7 @@ file that is uploaded in the thread. """
         )
         return response.choices[0].message.content
     
-    def image_validation_prompt(self, system_content: str, validation_content: str, imageurl: str) -> str:
+    def image_validation_prompt(self, imageurl: str, system_content: str, validation_content: str) -> str:
         """
         Sends a validation prompt with an image to the model and returns the response.
 
@@ -87,11 +104,16 @@ file that is uploaded in the thread. """
                     "role": "user",
                     "content": [
                         {"type": "text", "text": validation_content},
-                        {"type": "image_url", "image_url": imageurl},
+                        {"type": "image_url", 
+                         "image_url": {
+                            "url": imageurl,
+                            "detail": "low"
+                            }
+                        },
                     ],
                 }
             ],
-            max_tokens=75,
+            max_tokens=1000,
         )
         return response.choices[0].message.content
     
@@ -141,7 +163,7 @@ file that is uploaded in the thread. """
             
             return run.status
         
-    def xlsx_file_validation_prompt(self, file_path: str, validation_content: str) -> str:
+    def ci_file_validation_prompt(self, file_path: str, system_content: str, validation_content: str) -> str:
         """
         Sends a validation prompt with an XLSX file to the model and returns the response.
 
@@ -153,7 +175,7 @@ file that is uploaded in the thread. """
             str: The model's response or the run status if not completed.
         """
         file_assistant = self.client.beta.assistants.create(
-            instructions=self.assistant_instruction,
+            instructions=self.assistant_instruction + system_content,
             model=self.model,
             tools=[{"type": "code_interpreter"}],
         )
@@ -180,12 +202,21 @@ file that is uploaded in the thread. """
 
             self.cleanup_resources(file_assistant.id, query_file.id, empty_thread.id)
 
-            return messages
+            return messages.data[0].content[0].text.value
         else:
 
             self.cleanup_resources(file_assistant.id, query_file.id, empty_thread.id)
 
             return run.status
+    
+    def stt_validation_prompt(self, file_path: str, system_content: str) -> str:
+        messages = self.client.audio.transcriptions.create(
+            model="whisper-1",
+            file=open(file_path, "rb"),
+            response_format="text"
+        )
+
+        return messages
     
     def cleanup_resources(self, assistant_id: str, file_id: str, thread_id: str) -> None:
         """

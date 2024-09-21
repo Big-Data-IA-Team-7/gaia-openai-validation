@@ -5,6 +5,12 @@ import os
 import requests
 import tempfile
 
+# File Extensions
+RETRIEVAL_EXT = ['.docx', '.txt', '.pdf', '.pptx']
+CI_EXT = ['.csv', '.xlsx', '.py', '.zip']
+IMG_EXT = ['.jpg', '.png']
+MP3_EXT = ['.mp3']
+
 # AWS credentials
 aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
 aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
@@ -83,4 +89,4 @@ def download_file(url):
     temp.write(response.content)
     temp.close()  # Close the file to finalize writing
     
-    return temp.name  # Return the path to the temporary file
+    return {"url": url, "path": temp.name, "extension": extension}
