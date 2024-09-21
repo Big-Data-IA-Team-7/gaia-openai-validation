@@ -40,12 +40,12 @@ train_df = ds['validation'].to_pandas()
 train_df['Annotator Metadata'] = train_df['Annotator Metadata'].apply(json.dumps)
 
 
-train_df.to_sql(schema = 'bdia_team7_db',name='gaia_metadata_tbl_test', con=engine, if_exists='replace', index=False)
+train_df.to_sql(schema = 'bdia_team7_db',name='gaia_metadata_tbl', con=engine, if_exists='replace', index=False)
 print("GAIA dataset loaded into AWS RDS - bdia_team7_db successfully.")
 
 # SQL query to alter the table and add a new column
 alter_table_query = """
-ALTER TABLE bdia_team7_db.gaia_metadata_tbl_test 
+ALTER TABLE bdia_team7_db.gaia_metadata_tbl
 ADD COLUMN s3_url varchar(255);
 """
 
@@ -75,7 +75,7 @@ try:
         cursor = connection.cursor(dictionary=True)
 
         # Fetch records where file_name is not null
-        select_query = "SELECT * FROM bdia_team7_db.gaia_metadata_tbl_test WHERE trim(file_name) != ''"
+        select_query = "SELECT * FROM bdia_team7_db.gaia_metadata_tbl WHERE trim(file_name) != ''"
         cursor.execute(select_query)
         records = cursor.fetchall()
 
@@ -100,7 +100,7 @@ try:
                     print(f"Uploaded {file_name} to S3 at {s3_url}")
 
                     # Update the original RDS record with the S3 URL
-                    update_query = """UPDATE bdia_team7_db.gaia_metadata_tbl_test
+                    update_query = """UPDATE bdia_team7_db.gaia_metadata_tbl
                                       SET s3_url = %s
                                       WHERE task_id = %s"""
                     cursor.execute(update_query, (s3_url, task_id))
