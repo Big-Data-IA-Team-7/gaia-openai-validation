@@ -1,5 +1,5 @@
 import streamlit as st
-from data.data_storage import insert_model_response
+from data.data_read import insert_model_response
 from datetime import datetime
 from data.data_s3 import download_file, process_data_and_generate_url, RETRIEVAL_EXT, CI_EXT, IMG_EXT, MP3_EXT
 import json
