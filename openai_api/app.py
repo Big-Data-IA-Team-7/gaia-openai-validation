@@ -6,7 +6,7 @@ from data.data_read import fetch_data_from_db,fetch_data_from_db_dashboards
 from openai_api.openai_api_call import OpenAIClient
 from streamlit_ui.streamlit_custom_css import apply_custom_css
 from pages.streamlit_home_page import render_home_page
-from streamlit_ui.streamlit_dashboard_page import render_dashboard_page
+from pages.streamlit_dashboard_page import render_dashboard_page
 from pages.streamlit_predicting_page import render_predicting_page
 from pages.streamlit_predicting_page import reset_interaction_state
 
