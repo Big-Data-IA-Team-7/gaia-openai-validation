@@ -1,20 +1,15 @@
 import boto3
-import pandas as pd
-from urllib.parse import urlparse
-from read import fetch_data_from_db
+from urllib.parse import urlparse, unquote
+from data.data_read import fetch_data_from_db
 import os
-from dotenv import load_dotenv
-from PyPDF2 import PdfReader  # For PDF handling
-import io
 import requests
 import tempfile
-import os
-from urllib.parse import urlparse, unquote
-import mimetypes
 
-
-# Load .env file
-load_dotenv()
+# File Extensions
+RETRIEVAL_EXT = ['.docx', '.txt', '.pdf', '.pptx']
+CI_EXT = ['.csv', '.xlsx', '.py', '.zip']
+IMG_EXT = ['.jpg', '.png']
+MP3_EXT = ['.mp3']
 
 # AWS credentials
 aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
@@ -94,4 +89,4 @@ def download_file(url):
     temp.write(response.content)
     temp.close()  # Close the file to finalize writing
     
-    return temp.name  # Return the path to the temporary file
+    return {"url": url, "path": temp.name, "extension": extension}

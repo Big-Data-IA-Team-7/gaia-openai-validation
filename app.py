@@ -1,14 +1,14 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 import streamlit as st
-import json
-from read import fetch_data_from_db
-from openai_api_call import OpenAIClient
-from datetime import datetime
-from data_storage import insert_model_response
-from streamlit_custom_css import apply_custom_css
-from streamlit_home_page import render_home_page
-from streamlit_dashboard_page import render_dashboard_page
-from streamlit_predicting_page import render_predicting_page
-from streamlit_predicting_page import reset_interaction_state
+from data.data_read import fetch_data_from_db,fetch_data_from_db_dashboards
+from openai_api.openai_api_call import OpenAIClient
+from streamlit_ui.streamlit_custom_css import apply_custom_css
+from streamlit_ui.streamlit_home_page import render_home_page
+from streamlit_ui.streamlit_dashboard_page import render_dashboard_page
+from streamlit_ui.streamlit_predicting_page import render_predicting_page
+from streamlit_ui.streamlit_predicting_page import reset_interaction_state
 
 
 def setup_session_state():
@@ -33,7 +33,6 @@ def setup_session_state():
         st.session_state.steps_text = ""
 
 
-
 def render_sidebar():
     """Render the sidebar with navigation buttons."""
     st.sidebar.title("Navigation")
@@ -48,6 +47,7 @@ def render_sidebar():
         reset_interaction_state()  # Reset the interaction state when navigating to the Dashboard page
 
 def main():
+    
     """Main function to control the flow of the app."""
     apply_custom_css()
     setup_session_state()
@@ -56,7 +56,7 @@ def main():
     
     # Call the function and store the result in a DataFrame
     data_frame = fetch_data_from_db()
-
+    data_frame_dashboard=fetch_data_from_db_dashboards()
     render_sidebar()
 
     if st.session_state.page == "Home":
@@ -67,7 +67,7 @@ def main():
         else:
             st.write("Failed to retrieve data")
     elif st.session_state.page == "Dashboard":
-        render_dashboard_page()
+        render_dashboard_page(data_frame_dashboard,data_frame)
 
 if __name__ == "__main__":
     main()
