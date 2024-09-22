@@ -17,7 +17,7 @@ def fetch_data_from_db():
 
             # Execute the query
             mydata.execute("SELECT * FROM gaia_metadata_tbl")
-
+            
             # Fetch all the data
             myresult = mydata.fetchall()
 
@@ -39,8 +39,42 @@ def fetch_data_from_db():
             mydb.close()
             print("MySQL connection closed")
 
+#Fetching the data for the dasboards
+def fetch_data_from_db_dashboards():
+    try:
+        # Connect to MySQL database
+       # Connect to MySQL database
+        mydb = get_db_connection()
+        
+        if mydb.is_connected():
+            print("Connected to the database")
 
+            # Create a cursor object for dashboards
+            mydata_dashboard = mydb.cursor()
 
+            # Execute the query values for dashboards
+            mydata_dashboard.execute("SELECT * FROM model_response")
+
+            # Fetch all the data for dashboards
+            myresult = mydata_dashboard.fetchall()
+
+            # Get column names
+            columns = [col[0] for col in mydata_dashboard.description]
+
+            # Store the fetched data into a pandas DataFrame
+            df_dashboards = pd.DataFrame(myresult, columns=columns)
+
+            return df_dashboards
+
+    except mysql.connector.Error as e:
+        print(f"Error: {e}")
+        return None
+
+    finally:
+        if mydb.is_connected():
+            mydata_dashboard.close()
+            mydb.close()
+            print("MySQL connection closed")
 
 # Function to insert a model's response into the database
 def insert_model_response(task_id, date, model_used, model_response, response_category, created_at=datetime.now(), created_by='streamlit user'):
