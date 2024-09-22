@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import streamlit as st
-from data.data_read import fetch_data_from_db
+from data.data_read import fetch_data_from_db,fetch_data_from_db_dashboards
 from openai_api.openai_api_call import OpenAIClient
 from streamlit_ui.streamlit_custom_css import apply_custom_css
 from streamlit_ui.streamlit_home_page import render_home_page
@@ -56,7 +56,7 @@ def main():
     
     # Call the function and store the result in a DataFrame
     data_frame = fetch_data_from_db()
-
+    data_frame_dashboard=fetch_data_from_db_dashboards()
     render_sidebar()
 
     if st.session_state.page == "Home":
@@ -67,7 +67,7 @@ def main():
         else:
             st.write("Failed to retrieve data")
     elif st.session_state.page == "Dashboard":
-        render_dashboard_page()
+        render_dashboard_page(data_frame_dashboard,data_frame)
 
 if __name__ == "__main__":
     main()
