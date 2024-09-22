@@ -101,79 +101,48 @@ def handle_wrong_answer_flow(data_frame, question_selected, openai_client, valid
 
 # Main rendering function
 def render_predicting_page(data_frame, openai_client):
-    """Render the Predicting page content with selectboxes next to each other."""
+    """Render the Predicting page content."""
+    question_selected = render_question_selector(data_frame)
     
-    # Initially show a placeholder value
-    placeholder_text = "Select a Question"
-    filter_text = "Select Level"
-    filter_data = sorted(data_frame['Level'].unique())
-
-    # Create two columns for the select boxes
-    col1, col2 = st.columns(2)  # Two equal-width columns
-    
-    with col1:
-        filter_selected = st.selectbox(
-            'Select Level for the Question',
-            options=[filter_text] + filter_data,
-            index=0,
-            format_func=lambda x: f"{x}",  # Format function to adjust display
-            key='level_select',  # Unique key for the selectbox
-            help='Choose the level for the question',
-        )
-        # Reduce the width of the selectbox using markdown
-        st.markdown("<style>div[role='listbox'] { max-width: 100px; }</style>", unsafe_allow_html=True)  # Adjust the max-width as needed
-    
-    with col2:
-        filter_selected_question = data_frame[data_frame['Level'] == filter_selected]['Question']
-        
-        # Selectbox for the question, default is the placeholder
-        question_selected = st.selectbox(
-            'Select a Question', 
-            options=[placeholder_text] + list(filter_selected_question),  # Adding placeholder to the list of questions
-            index=0  # Start with the placeholder selected
-        )
-
-    # Reset interaction state if a new question is selected
-    if question_selected != st.session_state.previous_question:
-        reset_interaction_state()  # Reset the session state if the question changes
-        st.session_state.previous_question = question_selected  # Update the session state with the new question
-
-    # Proceed only if the user selects a valid question (not the placeholder)
-    if question_selected != placeholder_text:
+    if question_selected != "Select a Question":
         st.text_area("Selected Question:", question_selected)
-        # Answer to the selected Question
-        validate_answer = data_frame[data_frame['Question'] == question_selected]['Final answer'].iloc[0]
+        validate_answer = data_frame[data_frame['Question'] == question_selected]
+        task_id_sel = validate_answer['task_id'].iloc[0]
+        validate_answer = validate_answer['Final answer'].iloc[0]
         st.write('Selected Question Answer is:', validate_answer)
-        file_name = process_data_and_generate_url(question_selected)
-        if file_name == 1:
-            st.write('No file is associated with this question')
-        else:
-            file_path = download_file(file_name)
-            st.write('Download file:', file_name)
-        # Button for Asking Question to GPT
-        if not st.session_state.ask_gpt_clicked:  # Check if Ask GPT hasn't been clicked yet
-            button_values = st.button('Ask GPT')
-            if button_values:
-                st.session_state.ask_gpt_clicked = True  # Set Ask GPT to True when clicked
-                validation_content = openai_client.format_content(0, question_selected)
-                if file_name != 1:
-                    ai_response = openai_client.file_validation_prompt(file_path, openai_client.val_system_content, validation_content)
+
+        st.session_state.task_id_sel = task_id_sel
+
+        loaded_file = handle_file_processing(question_selected)
+
+        if not st.session_state.ask_gpt_clicked:
+            if st.button('Ask GPT'):
+                st.session_state.ask_gpt_clicked = True
+                if loaded_file:
+                    if loaded_file["extension"] in MP3_EXT:
+                        system_content = openai_client.audio_system_content
+                        format_type = 1
+                    else:
+                        system_content = openai_client.val_system_content
+                        format_type = 0
                 else:
-                    ai_response = openai_client.validation_prompt(openai_client.val_system_content, validation_content)
-                st.session_state.ai_response = ai_response
+                    system_content = openai_client.val_system_content
+                    format_type = 0
+                ai_response = ask_gpt(openai_client, system_content, question_selected, format_type, loaded_file)
+
                 if ai_response not in validate_answer:
                     st.session_state.show_next_steps = False
                     st.session_state.show_no_response = False  # Reset the buttons' state
                 else:
-                    st.success("GPT Predicted correct Answer")
+                    st.success("GPT predicted the correct answer.")
+                    insert_model_response(task_id_sel, datetime.now().date(), 'gpt-4o', ai_response, 'correct as-is')
 
         if st.session_state.ask_gpt_clicked:
             ai_response = st.session_state.ai_response
             st.write(ai_response)
             if ai_response not in validate_answer:
-                st.error("Sorry GPT Predicted Wrong answer. Do you need the steps?")
-
-                # Show Yes and No buttons if they haven't been clicked yet
+                st.error("Sorry, GPT predicted the wrong answer. Do you need the steps?")
+                
                 if not st.session_state.show_next_steps and not st.session_state.show_no_response:
                     col1, col2 = st.columns(2)
                     with col1:
@@ -192,26 +161,6 @@ def render_predicting_page(data_frame, openai_client):
 
                 # If "Yes" was clicked, show the next steps and hide the "No" button
                 if st.session_state.show_next_steps:
-                    steps = data_frame[data_frame['Question'] == question_selected]['Annotator Metadata'].iloc[0]
-                    steps_dict = json.loads(steps)
-                    steps_text = steps_dict.get('Steps', 'No steps found')
-                    steps_question = st.text_area('Steps:', steps_text)
-                    st.session_state.steps_text = steps_question
-
-                # Show Ask GPT Again button if needed
-                if st.session_state.show_ask_gpt_again:
-                    if st.button("Ask GPT Again"):
-                        ann_validation_content = openai_client.format_content(1, question_selected, st.session_state.steps_text)
-                        if file_name != 1:
-                            ann_ai_response = openai_client.file_validation_prompt(file_path, openai_client.ann_system_content, ann_validation_content)
-                        else:
-                            ann_ai_response = openai_client.validation_prompt(openai_client.ann_system_content, ann_validation_content)
-                        st.write(ann_ai_response)
-                        if ann_ai_response not in validate_answer:
-                            print('validate_answer', validate_answer)
-                            st.error("Sorry!!! GPT Unable to predict the correct Answer after the steps provided")
-                        else:
-                            print('validate_answer', validate_answer)
-                            st.success('GPT Predicted the correct Answer')
+                    handle_wrong_answer_flow(data_frame, question_selected, openai_client, validate_answer, loaded_file)
     else:
         st.write("Please select a valid question to proceed.")
