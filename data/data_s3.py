@@ -9,6 +9,7 @@ import tempfile
 RETRIEVAL_EXT = ['.docx', '.txt', '.pdf', '.pptx']
 CI_EXT = ['.csv', '.xlsx', '.py', '.zip']
 IMG_EXT = ['.jpg', '.png']
+ERR_EXT = ['.pdb', '.jsonld']
 MP3_EXT = ['.mp3']
 
 # AWS credentials
