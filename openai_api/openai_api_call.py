@@ -35,7 +35,7 @@ mentions the steps that you should take for answering the question. The text \"O
 explains how the Question must be answered. You are an AI that reads the Question enclosed in triple backticks and \
 the Transcript and follows the Annotator Steps and provides the answer in the mentioned Output Format."""
 
-        self.output_format = "Provide only the answer to the question."
+        self.output_format = "Provide only text in the answer to the question. Do not provide any attachments or code."
 
         self.assistant_instruction = """You are an assistant that answers any questions relevant to the \
 file that is uploaded in the thread. """
@@ -134,6 +134,7 @@ file that is uploaded in the thread. """
         run = self.client.beta.threads.runs.create_and_poll(
             thread_id=empty_thread.id,
             assistant_id=file_assistant.id,
+            max_completion_tokens=75
         )
 
         if run.status == 'completed':
@@ -180,6 +181,7 @@ file that is uploaded in the thread. """
         run = self.client.beta.threads.runs.create_and_poll(
             thread_id=empty_thread.id,
             assistant_id=file_assistant.id,
+            max_completion_tokens=75
         )
 
         if run.status == 'completed':
