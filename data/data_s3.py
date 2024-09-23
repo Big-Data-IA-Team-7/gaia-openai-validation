@@ -9,6 +9,7 @@ import tempfile
 RETRIEVAL_EXT = ['.docx', '.txt', '.pdf', '.pptx']
 CI_EXT = ['.csv', '.xlsx', '.py', '.zip']
 IMG_EXT = ['.jpg', '.png']
+ERR_EXT = ['.pdb', '.jsonld']
 MP3_EXT = ['.mp3']
 
 # AWS credentials
@@ -52,9 +53,10 @@ def process_data_and_generate_url(Question):
             matching_rows = df[df['Question'] == Question]
             if not matching_rows.empty:
                 s3_url_variable = matching_rows['s3_url'].values[0]
+                print(s3_url_variable)
 
                 # Check if s3_url_variable is null
-                if s3_url_variable!='':
+                if s3_url_variable is not None:
                     # Generate a pre-signed URL for the S3 file
                     presigned_url = generate_presigned_url(s3_url_variable, expiration=3600)  # URL valid for 1 hour
                     return presigned_url

@@ -1,7 +1,7 @@
 from openai import OpenAI
 
 class OpenAIClient:
-    def __init__(self, model: str = "gpt-4o"):
+    def __init__(self):
         """
         Initializes the OpenAIClient with a specified model.
 
@@ -9,7 +9,6 @@ class OpenAIClient:
             model (str): The model ID to be used for generating completions (default: "gpt-4o").
         """
         self.client = OpenAI()  # Initialize OpenAI client
-        self.model = model  # Set model (default is gpt-4o)
 
         # System content strings
         self.val_system_content = """Every prompt will begin with the text \"Question:\" followed by the question \
@@ -63,7 +62,7 @@ file that is uploaded in the thread. """
         else:
             return f"Question: ```{question}```\nAnnotator Steps: {annotator_steps}\nOutput Format: {self.output_format}\n"
         
-    def validation_prompt(self, system_content: str, user_content: str) -> str:
+    def validation_prompt(self, system_content: str, user_content: str, model: str = "gpt-4o", imageurl: str = None) -> str:
         """
         Sends a validation prompt to the model and returns the model's response.
 
@@ -74,50 +73,38 @@ file that is uploaded in the thread. """
         Returns:
             str: The model's response.
         """
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {"role": "system", "content": system_content},
-                {"role": "user", "content": user_content}
-            ],
-            max_tokens=75,
-        )
+        if imageurl:     
+            response = self.client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_content},
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": user_content},
+                            {"type": "image_url", 
+                            "image_url": {
+                                "url": imageurl,
+                                "detail": "low"
+                                }
+                            },
+                        ],
+                    }
+                ],
+                max_tokens=1000,
+            )
+        else:
+            response = self.client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_content},
+                    {"role": "user", "content": user_content}
+                ],
+                max_tokens=75,
+            )
         return response.choices[0].message.content
     
-    def image_validation_prompt(self, imageurl: str, system_content: str, validation_content: str) -> str:
-        """
-        Sends a validation prompt with an image to the model and returns the response.
-
-        Args:
-            system_content (str): The system message setting the context.
-            validation_content (str): The user message to validate.
-            imageurl (str): The URL of the image to validate.
-
-        Returns:
-            str: The model's response.
-        """
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {"role": "system", "content": system_content},
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": validation_content},
-                        {"type": "image_url", 
-                         "image_url": {
-                            "url": imageurl,
-                            "detail": "low"
-                            }
-                        },
-                    ],
-                }
-            ],
-            max_tokens=1000,
-        )
-        return response.choices[0].message.content
-    
-    def file_validation_prompt(self, file_path: str, system_content: str, validation_content: str) -> str:
+    def file_validation_prompt(self, file_path: str, system_content: str, validation_content: str, model: str = "gpt-4o") -> str:
         """
         Sends a validation prompt with a file to the model and returns the response.
 
@@ -130,7 +117,7 @@ file that is uploaded in the thread. """
         """
         file_assistant = self.client.beta.assistants.create(
             instructions=self.assistant_instruction + system_content,
-            model=self.model,
+            model=model,
             tools=[{"type": "file_search"}],
         )
 
@@ -163,7 +150,7 @@ file that is uploaded in the thread. """
             
             return run.status
         
-    def ci_file_validation_prompt(self, file_path: str, system_content: str, validation_content: str) -> str:
+    def ci_file_validation_prompt(self, file_path: str, system_content: str, validation_content: str, model: str = "gpt-4o") -> str:
         """
         Sends a validation prompt with an XLSX file to the model and returns the response.
 
@@ -176,7 +163,7 @@ file that is uploaded in the thread. """
         """
         file_assistant = self.client.beta.assistants.create(
             instructions=self.assistant_instruction + system_content,
-            model=self.model,
+            model=model,
             tools=[{"type": "code_interpreter"}],
         )
 
@@ -209,7 +196,7 @@ file that is uploaded in the thread. """
 
             return run.status
     
-    def stt_validation_prompt(self, file_path: str, system_content: str) -> str:
+    def stt_validation_prompt(self, file_path: str) -> str:
         messages = self.client.audio.transcriptions.create(
             model="whisper-1",
             file=open(file_path, "rb"),
