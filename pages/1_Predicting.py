@@ -105,7 +105,7 @@ def handle_wrong_answer_flow(data_frame, question_selected, openai_client, valid
         
         "**LLM Response**: " + ann_ai_response
 
-        if ann_ai_response not in validate_answer:
+        if  answer_validation_check(validate_answer,ann_ai_response):
             st.error("Sorry! GPT predicted the wrong answer even after providing steps.")
             insert_model_response(st.session_state.task_id_sel, datetime.now().date(), 'gpt-4o', ann_ai_response, 'wrong answer')
         else:
@@ -114,6 +114,14 @@ def handle_wrong_answer_flow(data_frame, question_selected, openai_client, valid
 
 def button_click(button):
      st.session_state[button] = True
+
+
+def answer_validation_check(final_answer,validation_answer):
+    final_answer = final_answer.strip().lower()
+    validation_answer = validation_answer.strip().lower()
+    return final_answer not in validation_answer
+
+
 
 # Filter the data frame based on the selected level
 filtered_questions = st.session_state.data_frame.loc[st.session_state.data_frame['Level'] == level_filter, 'Question']
@@ -158,6 +166,6 @@ if question_selected:
 
             "**LLM Response:** " + ai_response
 
-            if ai_response not in validate_answer:
+            if  answer_validation_check(validate_answer,ai_response):
                 st.error("Sorry, GPT predicted the wrong answer. Do you need the steps?")
                 gpt_steps(question_selected, validate_answer, model_chosen, loaded_file)

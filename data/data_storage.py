@@ -7,7 +7,9 @@ import requests
 from mysql.connector import Error
 from sqlalchemy import create_engine, text
 from datetime import datetime
-from data.db_connection import get_db_connection
+from db_connection import get_db_connection
+from dotenv import load_dotenv
+load_dotenv()
 
 # Getting in Environmental variables
 hugging_face_token = os.getenv('HUGGINGFACE_TOKEN')
@@ -43,16 +45,17 @@ train_df['Annotator Metadata'] = train_df['Annotator Metadata'].apply(json.dumps
 train_df.to_sql(schema = 'bdia_team7_db',name='gaia_metadata_tbl', con=engine, if_exists='replace', index=False)
 print("GAIA dataset loaded into AWS RDS - bdia_team7_db successfully.")
 
-# SQL query to alter the table and add a new column
+# SQL query to alter the table and add new columns s3 url and file extension
 alter_table_query = """
 ALTER TABLE bdia_team7_db.gaia_metadata_tbl
-ADD COLUMN s3_url varchar(255);
+ADD COLUMN s3_url varchar(255),
+ADD COLUMN file_extension varchar(255);
 """
 
 # Connect to the database and execute the query
 with engine.connect() as connection:
     connection.execute(text(alter_table_query))
-    print("Column 's3_url' added successfully.")
+    print("Column 's3_url and file extension' added successfully.")
 
 
 # AWS S3 setup
@@ -100,12 +103,27 @@ try:
                     print(f"Uploaded {file_name} to S3 at {s3_url}")
 
                     # Update the original RDS record with the S3 URL
-                    update_query = """UPDATE bdia_team7_db.gaia_metadata_tbl
+                    update_s3url_query = """UPDATE bdia_team7_db.gaia_metadata_tbl
                                       SET s3_url = %s
                                       WHERE task_id = %s"""
-                    cursor.execute(update_query, (s3_url, task_id))
+                    cursor.execute(update_s3url_query, (s3_url, task_id))
                     connection.commit()
                     print(f"Updated record {task_id} with S3 URL.")
+
+
+                    # Update the original RDS record with the file extension
+                    # SQL query to update the file extension
+                    update_file_ext_query = """
+                                    UPDATE bdia_team7_db.gaia_metadata_tbl
+                                    SET file_extension = SUBSTRING_INDEX(file_name, '.', -1)
+                                    WHERE task_id = %s
+                                    """
+
+                    # Example Python code to execute the query
+                    cursor.execute(update_file_ext_query, (task_id,))
+                    connection.commit()
+                    print(f"Updated record {task_id} with file extension.")
+
 
             except requests.exceptions.RequestException as e:
                 print(f"Error downloading {file_name}: {e}")
