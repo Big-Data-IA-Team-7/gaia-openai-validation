@@ -22,13 +22,12 @@ with st.sidebar:
                                 index=None,
     )
     
-    # file_extensions = ['PDF', 'DOCX', 'TXT', 'PPTX', 'CSV', 'XLSX', 'PY', 'ZIP', 'JPG', 'PNG', 'PDB', 'JSONLD', 'MP3']
+    file_extensions = ['PDF', 'DOCX', 'TXT', 'PPTX', 'CSV', 'XLSX', 'PY', 'ZIP', 'JPG', 'PNG', 'PDB', 'JSONLD', 'MP3']
     
-    # extension_filter = st.selectbox("**Extension**",
-    #                                 file_extensions,
-    #                                 index=None,
-    # )
-
+    extension_filter = st.selectbox("**Extension**",
+                                    file_extensions,
+                                    index=None,
+    )
 
 @st.fragment
 def download_fragment(file_name):
@@ -50,7 +49,7 @@ def handle_file_processing(question_selected):
         return None
     else:
         loaded_file = download_file(file_name)
-        download_fragment(file_name)
+        download_fragment(loaded_file["path"])
         return loaded_file
 
 def ask_gpt(openai_client, system_content, question_selected, format_type, model, loaded_file=None, annotated_steps=None):
@@ -105,22 +104,44 @@ def handle_wrong_answer_flow(data_frame, question_selected, openai_client, valid
         
         "**LLM Response**: " + ann_ai_response
 
-        if ann_ai_response not in validate_answer:
+        if  answer_validation_check(validate_answer,ann_ai_response):
             st.error("Sorry! GPT predicted the wrong answer even after providing steps.")
-            insert_model_response(st.session_state.task_id_sel, datetime.now().date(), 'gpt-4o', ann_ai_response, 'wrong answer')
+            insert_model_response(st.session_state.task_id_sel, datetime.now().date(), model, ann_ai_response, 'wrong answer')
         else:
             st.success('GPT predicted the correct answer after the steps were provided.')
-            insert_model_response(st.session_state.task_id_sel, datetime.now().date(), 'gpt-4o', ann_ai_response, 'correct after steps')
+            insert_model_response(st.session_state.task_id_sel, datetime.now().date(), model, ann_ai_response, 'correct after steps')
 
 def button_click(button):
      st.session_state[button] = True
 
-# Filter the data frame based on the selected level
-filtered_questions = st.session_state.data_frame.loc[st.session_state.data_frame['Level'] == level_filter, 'Question']
+def answer_validation_check(final_answer,validation_answer):
+    final_answer = final_answer.strip().lower()
+    validation_answer = validation_answer.strip().lower()
+    return final_answer not in validation_answer
+
+def filter_questions(level_filter: str = None, extension_filter: str = None):
+    # Filtering based on conditions
+    if level_filter and extension_filter:
+        filtered_questions = st.session_state.data_frame[
+            (st.session_state.data_frame['Level'] == level_filter) &
+            (st.session_state.data_frame['file_extension'] == extension_filter.lower())
+        ]['Question']
+    elif level_filter:
+        filtered_questions = st.session_state.data_frame[
+            st.session_state.data_frame['Level'] == level_filter
+        ]['Question']
+    elif extension_filter:
+        filtered_questions = st.session_state.data_frame[
+            st.session_state.data_frame['file_extension'] == extension_filter.lower()
+        ]['Question']
+    else:
+        filtered_questions = st.session_state.data_frame['Question']
+    
+    return filtered_questions
 
 question_selected = st.selectbox(
         "**Select a Question:**", 
-        options= filtered_questions if not filtered_questions.empty else st.session_state.data_frame['Question'],
+        options=filter_questions(level_filter, extension_filter) ,
         index=None,
     )
 
@@ -158,6 +179,9 @@ if question_selected:
 
             "**LLM Response:** " + ai_response
 
-            if ai_response not in validate_answer:
+            if  answer_validation_check(validate_answer,ai_response):
                 st.error("Sorry, GPT predicted the wrong answer. Do you need the steps?")
                 gpt_steps(question_selected, validate_answer, model_chosen, loaded_file)
+            else:
+                st.success("GPT predicted the correct answer.")
+                insert_model_response(task_id_sel, datetime.now().date(), model_chosen, ai_response, 'correct as-is')
