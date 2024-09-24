@@ -3,11 +3,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from data.data_read import fetch_data_from_db, fetch_data_from_db_dashboards
 import altair as alt
+
+st.session_state.data_frame_dashboard = fetch_data_from_db_dashboards()
+
 # Initialize session state for the data
 if 'data_frame' not in st.session_state:
     st.session_state.data_frame = fetch_data_from_db()
-if 'data_frame_dashboard' not in st.session_state:
-    st.session_state.data_frame_dashboard = fetch_data_from_db_dashboards()
 
 st.title("Dashboard")
 
