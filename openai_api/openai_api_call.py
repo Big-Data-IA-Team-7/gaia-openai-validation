@@ -1,12 +1,12 @@
+import openai
 from openai import OpenAI
+import time
+from project_logging import logging_module
 
 class OpenAIClient:
     def __init__(self):
         """
-        Initializes the OpenAIClient with a specified model.
-
-        Args:
-            model (str): The model ID to be used for generating completions (default: "gpt-4o").
+        Initializes the OpenAIClient with all system prompts.
         """
         self.client = OpenAI()  # Initialize OpenAI client
 
@@ -35,7 +35,8 @@ mentions the steps that you should take for answering the question. The text \"O
 explains how the Question must be answered. You are an AI that reads the Question enclosed in triple backticks and \
 the Transcript and follows the Annotator Steps and provides the answer in the mentioned Output Format."""
 
-        self.output_format = "Provide only text in the answer to the question. Do not provide any attachments or code."
+        self.output_format = "Provide a clear and conclusive answer to the Question being asked. Do not provide any \
+reasoning or references for your answer."
 
         self.assistant_instruction = """You are an assistant that answers any questions relevant to the \
 file that is uploaded in the thread. """
@@ -62,7 +63,7 @@ file that is uploaded in the thread. """
         else:
             return f"Question: ```{question}```\nAnnotator Steps: {annotator_steps}\nOutput Format: {self.output_format}\n"
         
-    def validation_prompt(self, system_content: str, user_content: str, model: str = "gpt-4o", imageurl: str = None) -> str:
+    def validation_prompt(self, system_content: str, user_content: str, model: str, imageurl: str = None) -> str:
         """
         Sends a validation prompt to the model and returns the model's response.
 
@@ -73,38 +74,58 @@ file that is uploaded in the thread. """
         Returns:
             str: The model's response.
         """
-        if imageurl:     
-            response = self.client.chat.completions.create(
-                model=model,
-                messages=[
-                    {"role": "system", "content": system_content},
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": user_content},
-                            {"type": "image_url", 
-                            "image_url": {
-                                "url": imageurl,
-                                "detail": "low"
-                                }
-                            },
-                        ],
-                    }
-                ],
-                max_tokens=1000,
-            )
-        else:
-            response = self.client.chat.completions.create(
-                model=model,
-                messages=[
-                    {"role": "system", "content": system_content},
-                    {"role": "user", "content": user_content}
-                ],
-                max_tokens=75,
-            )
-        return response.choices[0].message.content
+
+        try:
+
+            logging_module.log_success(f"System Content: {system_content}")
+            logging_module.log_success(f"User Content: {user_content}")
+
+            if imageurl:     
+                response = self.client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": system_content},
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": user_content},
+                                {"type": "image_url", 
+                                "image_url": {
+                                    "url": imageurl,
+                                    "detail": "low"
+                                    }
+                                },
+                            ],
+                        }
+                    ],
+                    max_completion_tokens=200,
+                )
+            else:
+                response = self.client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": system_content},
+                        {"role": "user", "content": user_content}
+                    ],
+                    max_completion_tokens=200,
+                )
+
+            logging_module.log_success(f"Response: {response.choices[0].message.content}")
+
+            return response.choices[0].message.content
+        
+        except openai.BadRequestError as e:
+            logging_module.log_error(f"Error: {e}")
+            return f"Error-BDIA: {e}"
+        except openai.APIError as e:
+            if e.http_status == 429:
+                logging_module.log_error(f"Error: {e}")
+                return f"Error-BDIA: {e}"
+        except Exception as e:
+            logging_module.log_error(f"An unexpected error occurred: {str(e)}")
+            return f"Error-BDIA: {e}"
     
-    def file_validation_prompt(self, file_path: str, system_content: str, validation_content: str, model: str = "gpt-4o") -> str:
+    def file_validation_prompt(self, file_path: str, system_content: str, validation_content: str, model: str) -> str:
         """
         Sends a validation prompt with a file to the model and returns the response.
 
@@ -115,43 +136,70 @@ file that is uploaded in the thread. """
         Returns:
             str: The model's response or the run status if not completed.
         """
-        file_assistant = self.client.beta.assistants.create(
-            instructions=self.assistant_instruction + system_content,
-            model=model,
-            tools=[{"type": "file_search"}],
-        )
+        
+        try:
 
-        query_file = self.client.files.create(file=open(file_path, "rb"), purpose="assistants")
-        empty_thread = self.client.beta.threads.create()
+            logging_module.log_success(f"System Content: {system_content}")
+            logging_module.log_success(f"User Content: {validation_content}")
 
-        self.client.beta.threads.messages.create(
-            empty_thread.id,
-            role="user",
-            content=validation_content,
-            attachments=[{"file_id": query_file.id, "tools": [{"type": "file_search"}]}]
-        )
-
-        run = self.client.beta.threads.runs.create_and_poll(
-            thread_id=empty_thread.id,
-            assistant_id=file_assistant.id,
-            max_completion_tokens=75
-        )
-
-        if run.status == 'completed':
-            messages = self.client.beta.threads.messages.list(
-                thread_id=run.thread_id
+            file_assistant = self.client.beta.assistants.create(
+                instructions=self.assistant_instruction + system_content,
+                model=model,
+                tools=[{"type": "file_search"}],
             )
 
-            self.cleanup_resources(file_assistant.id, query_file.id, empty_thread.id)
+            logging_module.log_success(f"Assistant created with ID: {file_assistant.id}")
 
-            return messages.data[0].content[0].text.value
-        else:
+            query_file = self.client.files.create(file=open(file_path, "rb"), purpose="assistants")
+
+            logging_module.log_success(f"File stored with ID: {query_file.id}")
+
+            empty_thread = self.client.beta.threads.create()
+
+            logging_module.log_success(f"Thread created with ID: {query_file.id}")
+
+            self.client.beta.threads.messages.create(
+                empty_thread.id,
+                role="user",
+                content=validation_content,
+                attachments=[{"file_id": query_file.id, "tools": [{"type": "file_search"}]}]
+            )
+
+            logging_module.log_success(f"Messages created with ID: {messages.id}")
+
+            run = self.client.beta.threads.runs.create_and_poll(
+                thread_id=empty_thread.id,
+                assistant_id=file_assistant.id,
+                max_completion_tokens=200,
+            )
+
+            logging_module.log_success(f"Run executed with ID: {run.id}")
+
+            if run.status == 'completed':
+                messages = self.client.beta.threads.messages.list(
+                    thread_id=run.thread_id
+                )
+
+                logging_module.log_success(f"Response: {messages.data[0].content[0].text.value}")
+
+                self.cleanup_resources(file_assistant.id, query_file.id, empty_thread.id)
+
+                return messages.data[0].content[0].text.value
+            else:
+                logging_module.log_error(f"Run Status: {run.status}")
             
-            self.cleanup_resources(file_assistant.id, query_file.id, empty_thread.id)
-            
-            return run.status
+        except openai.BadRequestError as e:
+            logging_module.log_error(f"Error: {e}")
+            return f"Error-BDIA: {e}"
+        except openai.APIError as e:
+            if e.http_status == 429:
+                logging_module.log_error(f"Error: {e}")
+                return f"Error-BDIA: {e}"
+        except Exception as e:
+            logging_module.log_error(f"An unexpected error occurred: {str(e)}")
+            return f"Error-BDIA: {e}"
         
-    def ci_file_validation_prompt(self, file_path: str, system_content: str, validation_content: str, model: str = "gpt-4o") -> str:
+    def ci_file_validation_prompt(self, file_path: str, system_content: str, validation_content: str, model: str) -> str:
         """
         Sends a validation prompt with an XLSX file to the model and returns the response.
 
@@ -162,50 +210,90 @@ file that is uploaded in the thread. """
         Returns:
             str: The model's response or the run status if not completed.
         """
-        file_assistant = self.client.beta.assistants.create(
-            instructions=self.assistant_instruction + system_content,
-            model=model,
-            tools=[{"type": "code_interpreter"}],
-        )
 
-        query_file = self.client.files.create(file=open(file_path, "rb"), purpose="assistants")
-        empty_thread = self.client.beta.threads.create()
+        try:
 
-        self.client.beta.threads.messages.create(
-            empty_thread.id,
-            role="user",
-            content=validation_content,
-            attachments=[{"file_id": query_file.id, "tools": [{"type": "code_interpreter"}]}]
-        )
+            logging_module.log_success(f" System Content: {system_content}")
+            logging_module.log_success(f" User Content: {validation_content}")
 
-        run = self.client.beta.threads.runs.create_and_poll(
-            thread_id=empty_thread.id,
-            assistant_id=file_assistant.id,
-            max_completion_tokens=75
-        )
-
-        if run.status == 'completed':
-            messages = self.client.beta.threads.messages.list(
-                thread_id=empty_thread.id
+            file_assistant = self.client.beta.assistants.create(
+                instructions=self.assistant_instruction + system_content,
+                model=model,
+                tools=[{"type": "code_interpreter"}],
             )
 
-            self.cleanup_resources(file_assistant.id, query_file.id, empty_thread.id)
+            logging_module.log_success(f"Assistant created with ID: {file_assistant.id}")
 
-            return messages.data[0].content[0].text.value
-        else:
+            query_file = self.client.files.create(file=open(file_path, "rb"), purpose="assistants")
 
-            self.cleanup_resources(file_assistant.id, query_file.id, empty_thread.id)
+            logging_module.log_success(f"File stored with ID: {query_file.id}")
 
-            return run.status
+            empty_thread = self.client.beta.threads.create()
+
+            logging_module.log_success(f"Thread created with ID: {query_file.id}")
+
+            self.client.beta.threads.messages.create(
+                empty_thread.id,
+                role="user",
+                content=validation_content,
+                attachments=[{"file_id": query_file.id, "tools": [{"type": "code_interpreter"}]}]
+            )
+
+            logging_module.log_success(f"Messages created with ID: {messages.id}")
+
+            run = self.client.beta.threads.runs.create_and_poll(
+                thread_id=empty_thread.id,
+                assistant_id=file_assistant.id,
+                max_completion_tokens=200,
+            )
+
+            logging_module.log_success(f"Run executed with ID: {run.id}")
+
+            if run.status == 'completed':
+                messages = self.client.beta.threads.messages.list(
+                    thread_id=empty_thread.id
+                )
+
+                logging_module.log_success(f"Response: {messages.data[0].content[0].text.value}")
+
+                self.cleanup_resources(file_assistant.id, query_file.id, empty_thread.id)
+
+                return messages.data[0].content[0].text.value
+            else:
+                logging_module.log_error(f"Run Status: {run.status}")
+            
+        except openai.BadRequestError as e:
+            logging_module.log_error(f"Error: {e}")
+            return f"Error-BDIA: {e}"
+        except openai.APIError as e:
+            if e.http_status == 429:
+                logging_module.log_error(f"Error: {e}")
+                return f"Error-BDIA: {e}"
+        except Exception as e:
+            logging_module.log_error(f"An unexpected error occurred: {str(e)}")
+            return f"Error-BDIA: {e}"
     
     def stt_validation_prompt(self, file_path: str) -> str:
-        messages = self.client.audio.transcriptions.create(
-            model="whisper-1",
-            file=open(file_path, "rb"),
-            response_format="text"
-        )
+        try:
+            messages = self.client.audio.transcriptions.create(
+                model="whisper-1",
+                file=open(file_path, "rb"),
+                response_format="text"
+            )
 
-        return messages
+            logging_module.log_success(f"Transcript Generated: {messages}")
+
+            return messages
+        except openai.BadRequestError as e:
+            logging_module.log_error(f"Error: {e}")
+            return f"Error-BDIA: {e}"
+        except openai.APIError as e:
+            if e.http_status == 429:
+                logging_module.log_error(f"Error: {e}")
+                return f"Error-BDIA: {e}"
+        except Exception as e:
+            logging_module.log_error(f"An unexpected error occurred: {str(e)}")
+            return f"Error-BDIA: {e}"
     
     def cleanup_resources(self, assistant_id: str, file_id: str, thread_id: str) -> None:
         """
@@ -222,14 +310,14 @@ file that is uploaded in the thread. """
         try:
             # Delete the assistant
             self.client.beta.assistants.delete(assistant_id)
-            print(f"Assistant {assistant_id} deleted successfully.")
+            logging_module.log_success(f"Assistant with {assistant_id} deleted successfully")
 
             # Delete the file
             self.client.files.delete(file_id)
-            print(f"File {file_id} deleted successfully.")
+            logging_module.log_success(f"Assistant with {file_id} deleted successfully")
 
             # Delete the thread
             self.client.beta.threads.delete(thread_id)
-            print(f"Thread {thread_id} deleted successfully.")
+            logging_module.log_success(f"Assistant with {thread_id} deleted successfully")
         except Exception as e:
-            print(f"Error during resource cleanup: {e}")
+            logging_module.log_error(f"Error occurred while cleaning up resources!")
