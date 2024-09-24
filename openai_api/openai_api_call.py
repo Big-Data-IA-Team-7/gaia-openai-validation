@@ -165,7 +165,7 @@ file that is uploaded in the thread. """
                 attachments=[{"file_id": query_file.id, "tools": [{"type": "file_search"}]}]
             )
 
-            logging_module.log_success(f"Messages created with ID: {messages.id}")
+            logging_module.log_success(f"Message created in thread {empty_thread.id} with file {query_file.id}")
 
             run = self.client.beta.threads.runs.create_and_poll(
                 thread_id=empty_thread.id,
@@ -239,7 +239,7 @@ file that is uploaded in the thread. """
                 attachments=[{"file_id": query_file.id, "tools": [{"type": "code_interpreter"}]}]
             )
 
-            logging_module.log_success(f"Messages created with ID: {messages.id}")
+            logging_module.log_success(f"Message created in thread {empty_thread.id} with file {query_file.id}")
 
             run = self.client.beta.threads.runs.create_and_poll(
                 thread_id=empty_thread.id,
