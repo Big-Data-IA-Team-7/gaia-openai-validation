@@ -5,7 +5,7 @@ logging.basicConfig(
     filename='bigdatateam7.log',  # Name of the log file
     level=logging.INFO,      # Set the logging level to INFO
     format='%(asctime)s - %(levelname)s - %(message)s',  # Log format
-    filemode='a'             # Overwrite the log file each run; use 'a' to append
+    filemode='w'             # Overwrite the log file each run; use 'a' to append
 )
 
 # Creating logger objects for success and error
