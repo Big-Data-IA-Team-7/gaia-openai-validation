@@ -1,17 +1,29 @@
 import streamlit as st
 import pandas as pd
 from data.data_read import fetch_data_from_db, fetch_data_from_db_dashboards
-
-
-from project_logging import logging_module
-
-logging_module.log_success("Dashboard Page")
+import altair as alt
 
 st.session_state.data_frame_dashboard = fetch_data_from_db_dashboards()
 
 # Initialize session state for the data
 if 'data_frame' not in st.session_state:
     st.session_state.data_frame = fetch_data_from_db()
+
+def dashboard_dataframe(dataframe):
+    overall=dataframe['response_category'].value_counts().reset_index()
+    overall['response_category'] = overall['response_category'].str.upper()
+    overall.columns = ["Response Category", "Number of Questions"]
+
+    st.dataframe(
+        overall,
+    hide_index=True)
+
+    bar_chart = alt.Chart(overall).mark_bar(color="#ffd21f", size=40).encode(
+        x=alt.X('Response Category:O', axis=alt.Axis(labelAngle=0, labelLimit=200, titleFontWeight='bold')),
+        y=alt.Y("Number of Questions:Q", axis=alt.Axis(titleFontWeight='bold'))
+        )
+    
+    st.altair_chart(bar_chart, use_container_width=True)
 
 st.title("Dashboard")
 
@@ -21,54 +33,36 @@ merger_df=merger_df[['task_id','Level','Final answer','model_used','model_respon
 
  # Select Box for Dashboards
 with st.sidebar:
-    dash_selection = st.selectbox(
+    selected_level = st.selectbox(
             "**Select a Level:**", 
             ["Overall","Level 1", "Level 2","Level 3"],
             index=None,
-            key="question_selector",
+            key="level_selector",
         )
     
-if dash_selection:
-    st.write(f'Dashboard based on {dash_selection} Selection')
+if selected_level:
+    st.header(f"Benchmarking on {selected_level} questions", divider="gray")
     
-# st.dataframe(merger_df)
-
-# Filter Model 
-if dash_selection:
-    if dash_selection == 'Overall':
-        # Use the 'count' dataframe for 'Overall' selection
-        model_value=merger_df['model_used'].unique()
+    # Determine if we're using 'Overall' or a specific level
+    if selected_level == 'Overall':
+        filtered_df = merger_df
     else:
-        # Extract the level number from 'Level X' (e.g., 'Level 1' => '1')
-        level_number = dash_selection.split()[-1]
-        model_value=merger_df[merger_df['Level']==level_number]
-        model_value=model_value['model_used'].unique()
-    Selecting_model = st.selectbox(
-            "**Select a Model:**", 
-            options=  model_value,
-            index=None,
-        )   
+        level_number = selected_level.split()[-1]
+        filtered_df = merger_df[merger_df['Level'] == level_number]
 
-# Handle all selections with a single if
-if dash_selection in ['Overall', 'Level 1', 'Level 2', 'Level 3']:
-    if dash_selection == 'Overall':
-        if Selecting_model:
-            # Use the 'count' dataframe for 'Overall' selection
-            model_selection_overall=merger_df[merger_df['model_used']==Selecting_model]
-            overall=model_selection_overall['response_category'].value_counts().reset_index()
-            overall.columns=['response_category','count']
-            st.dataframe(overall)
-            st.bar_chart(overall.set_index('response_category')['count'],use_container_width=False,width=150)
-    else:
-        # Count the occurrences of response_category and Level
-        level_wise_count = merger_df.groupby(['response_category', 'Level']).size().reset_index(name='count')
-        if Selecting_model:
-            model_selection_overall=merger_df[merger_df['model_used']==Selecting_model]
-            # Extract the level number from 'Level X' (e.g., 'Level 1' => '1')
-            level_number = dash_selection.split()[-1]
-            level_wise_count=merger_df[merger_df['model_used']==Selecting_model]
-            level_wise_count=level_wise_count[level_wise_count['Level'] == level_number]
-            overall=level_wise_count['response_category'].value_counts().reset_index()
-            overall.columns=['response_category','count']
-            st.dataframe(overall)
-            st.bar_chart(overall.set_index('response_category')['count'],use_container_width=False,width=150)
+    # Get unique models for the selectbox
+    model_value = filtered_df['model_used'].unique()
+    
+    selected_model = st.selectbox(
+        "**Select a Model:**", 
+        options=model_value,
+        index=None
+    )
+
+    if selected_model:
+        st.header(f"{selected_model} Performance", divider="gray")
+        # Filter based on the selected model
+        model_selection = filtered_df[filtered_df['model_used'] == selected_model]
+        
+        # Display the relevant DataFrame using your function
+        dashboard_dataframe(model_selection)
