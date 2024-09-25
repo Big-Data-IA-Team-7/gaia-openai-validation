@@ -63,7 +63,7 @@ def answer_validation_check(final_answer: str,validation_answer: str) -> bool:
               otherwise returns False.
     """
     final_answer = final_answer.strip().lower()
-    validation_answer = validation_answer.strip().lower()
+    validation_answer = validation_answer.strip().lower().replace('`', '')
 
         # Check if final_answer consists only of numbers
     if final_answer.isdigit():

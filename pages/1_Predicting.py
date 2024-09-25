@@ -88,7 +88,6 @@ def handle_file_processing(question_selected: str, dataframe) -> dict:
         download_fragment(loaded_file["path"])
         return loaded_file
 
-@st.fragment
 def handle_wrong_answer_flow(data_frame, question_selected: str, openai_client, validate_answer: str, model: str, loaded_file: dict = None) -> None:
     """
     Handles the flow for handling wrong answers by displaying next steps and allowing the option to ask GPT again.
@@ -111,7 +110,9 @@ def handle_wrong_answer_flow(data_frame, question_selected: str, openai_client, 
 
     st.session_state.steps_text = st.text_area('**Steps:**', steps_text)
 
-    if st.button("Ask GPT Again"):
+    gpt_button_clicked = st.button("Ask GPT Again", key="gpt_again", on_click=button_click, args=("ask_again_button_clicked",))
+
+    if gpt_button_clicked:
         if loaded_file and loaded_file["extension"] in MP3_EXT:
             ann_ai_response = ask_gpt(openai_client, openai_client.ann_audio_system_content, 
                                 question_selected, 2, model, loaded_file, st.session_state.steps_text)
