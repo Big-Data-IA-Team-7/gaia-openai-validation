@@ -88,6 +88,7 @@ def handle_file_processing(question_selected: str, dataframe) -> dict:
         download_fragment(loaded_file["path"])
         return loaded_file
 
+@st.fragment
 def handle_wrong_answer_flow(data_frame, question_selected: str, openai_client, validate_answer: str, model: str, loaded_file: dict = None) -> None:
     """
     Handles the flow for handling wrong answers by displaying next steps and allowing the option to ask GPT again.
@@ -222,21 +223,22 @@ if question_selected:
                     format_type = 0
                 ai_response = ask_gpt(st.session_state.openai_client, system_content, question_selected, format_type, model_chosen, loaded_file)
 
-                if re.match(r"Error-BDIA", ai_response):
-                    st.error("GPT 4 does not work for file search")
-                    button_reset(st.session_state.gpt_button)
+                if ai_response:
+                    if re.match(r"Error-BDIA", ai_response):
+                        st.error("GPT 4 does not work for file search")
+                        button_reset(st.session_state.gpt_button)
 
-                elif ai_response== "The LLM model currently does not support these file extensions.":
-                    "**LLM Response:** " + ai_response
-                    button_reset(st.session_state.gpt_button)
+                    elif ai_response== "The LLM model currently does not support these file extensions.":
+                        "**LLM Response:** " + ai_response
+                        button_reset(st.session_state.gpt_button)
 
-                else: 
-                    
-                    "**LLM Response:** " + ai_response
+                    else: 
+                        
+                        "**LLM Response:** " + ai_response
 
-                    if  answer_validation_check(validate_answer,ai_response):
-                        st.error("Sorry, GPT predicted the wrong answer. Do you need the steps?")
-                        gpt_steps(question_selected, validate_answer, model_chosen, loaded_file)
-                    else:
-                        st.success("GPT predicted the correct answer.")
-                        insert_model_response(task_id_sel, datetime.now().date(), model_chosen, ai_response, 'correct as-is')
+                        if  answer_validation_check(validate_answer,ai_response):
+                            st.error("Sorry, GPT predicted the wrong answer. Do you need the steps?")
+                            gpt_steps(question_selected, validate_answer, model_chosen, loaded_file)
+                        else:
+                            st.success("GPT predicted the correct answer.")
+                            insert_model_response(task_id_sel, datetime.now().date(), model_chosen, ai_response, 'correct as-is')

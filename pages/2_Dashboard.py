@@ -56,30 +56,36 @@ def model_perf_table(dataframe: pd.DataFrame) -> None:
 
     grouped_df = dataframe.groupby(['model_used', 'Level', 'response_category']).size().unstack(fill_value=0).reset_index()
 
-    grouped_df['total_correct'] = grouped_df['correct after steps'] + grouped_df['correct as-is']
-    grouped_df['total_questions'] = grouped_df['correct after steps'] + grouped_df['correct as-is'] + grouped_df['wrong answer']
+    if not grouped_df.empty:
+        grouped_df['total_correct'] = grouped_df['correct after steps'] + grouped_df['correct as-is']
+        grouped_df['total_questions'] = grouped_df['correct after steps'] + grouped_df['correct as-is'] + grouped_df['wrong answer']
 
-    # Calculate the score for each level
-    grouped_df['level_score'] = (grouped_df['total_correct'] / grouped_df['total_questions']) * 100
+        # Calculate the score for each level
+        grouped_df['level_score'] = (grouped_df['total_correct'] / grouped_df['total_questions']) * 100
 
-    # Calculate the average score across all levels for each model
-    average_scores_df = grouped_df.groupby('model_used').agg(
-        average_score=('level_score', 'mean'),
-        level_1_score=('level_score', lambda x: x[grouped_df['Level'] == '1'].mean() if '1' in grouped_df['Level'].values else 0),
-        level_2_score=('level_score', lambda x: x[grouped_df['Level'] == '2'].mean() if '2' in grouped_df['Level'].values else 0),
-        level_3_score=('level_score', lambda x: x[grouped_df['Level'] == '3'].mean() if '3' in grouped_df['Level'].values else 0)
-    ).reset_index()
+        # Calculate the average score across all levels for each model
+        average_scores_df = grouped_df.groupby('model_used').agg(
+            average_score=('level_score', 'mean'),
+            level_1_score=('level_score', lambda x: x[grouped_df['Level'] == '1'].mean() if '1' in grouped_df['Level'].values else 0),
+            level_2_score=('level_score', lambda x: x[grouped_df['Level'] == '2'].mean() if '2' in grouped_df['Level'].values else 0),
+            level_3_score=('level_score', lambda x: x[grouped_df['Level'] == '3'].mean() if '3' in grouped_df['Level'].values else 0)
+        ).reset_index()
 
-    st.dataframe(
-        average_scores_df,
-        hide_index=True,
-            column_config={
-        "model_used": "Model",
-        "average_score": "Average Score (%)",
-        "level_1_score": "Level 1 Score (%)",
-        "level_2_score": "Level 2 Score (%)",
-        "level_3_score": "Level 3 Score (%)",
-    })
+        if not average_scores_df.empty:
+            st.dataframe(
+                average_scores_df,
+                hide_index=True,
+                column_config={
+                    "model_used": "Model",
+                    "average_score": "Average Score (%)",
+                    "level_1_score": "Level 1 Score (%)",
+                    "level_2_score": "Level 2 Score (%)",
+                    "level_3_score": "Level 3 Score (%)",
+                })
+        else:
+            "No data available for average scores at the moment."
+    else:
+        "No data available in the table."
 
 st.title("Dashboard")
 
