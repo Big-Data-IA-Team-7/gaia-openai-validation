@@ -1,3 +1,7 @@
+# This Python script initializes the home page of a Streamlit-based application for OpenAI Benchmarking with GAIA.
+# It sets up the session state, loads environment variables, configures logging, and displays the project title along 
+# with the group members involved in the project.
+
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -9,7 +13,6 @@ if 'home_page' not in st.session_state:
     st.session_state.home_page = 'home' 
     logging_module.log_success("NEW PROGRAM EXECUTION\n\n")
 
-# Render the Home page content.
 st.title("OpenAI Benchmarking with GAIA")
 st.header("Group Members", divider="gray")
 

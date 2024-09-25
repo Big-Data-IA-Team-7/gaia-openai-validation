@@ -1,6 +1,10 @@
+# This Python script defines the OpenAIClient class for interacting with the OpenAI API.
+# It initializes the OpenAI client and sets up system prompt instructions for handling different types
+# of questions and output formats. The class serves as a wrapper around the OpenAI API, providing a 
+# structured way to initialize and manage AI prompts and responses within the application.
+
 import openai
 from openai import OpenAI
-import time
 from project_logging import logging_module
 
 class OpenAIClient:
@@ -70,6 +74,8 @@ file that is uploaded in the thread. """
         Args:
             system_content (str): The system message that sets the context for the model.
             user_content (str): The user message to validate or respond to.
+            model (str): The model to be used for generating the response.
+            imageurl (str, optional): The URL of an image to be included in the prompt, if any. Defaults to None.
 
         Returns:
             str: The model's response.
@@ -131,7 +137,9 @@ file that is uploaded in the thread. """
 
         Args:
             file_path (str): The path to the file to be validated.
+            system_content (str): The system message that sets the context for the model.
             validation_content (str): The user message to validate.
+            model (str): The model to be used for generating the response.
 
         Returns:
             str: The model's response or the run status if not completed.
@@ -205,7 +213,9 @@ file that is uploaded in the thread. """
 
         Args:
             file_path (str): The path to the XLSX file to validate.
+            system_content (str): The system message that sets the context for the model.
             validation_content (str): The user message to validate.
+            model (str): The model to be used for generating the response.
 
         Returns:
             str: The model's response or the run status if not completed.
@@ -274,6 +284,15 @@ file that is uploaded in the thread. """
             return f"Error-BDIA: {e}"
     
     def stt_validation_prompt(self, file_path: str) -> str:
+        """
+        Sends an audio file for transcription using the Whisper model and returns the transcribed text.
+
+        Args:
+            file_path (str): The path to the audio file to be transcribed.
+
+        Returns:
+            str: The transcribed text if successful, or an error message if a problem occurs.
+        """
         try:
             messages = self.client.audio.transcriptions.create(
                 model="whisper-1",
