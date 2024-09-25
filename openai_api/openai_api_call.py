@@ -88,7 +88,7 @@ file that is uploaded in the thread. """
 
             if imageurl:     
                 response = self.client.chat.completions.create(
-                    model=model,
+                    model=model.lower(),
                     messages=[
                         {"role": "system", "content": system_content},
                         {
@@ -103,17 +103,15 @@ file that is uploaded in the thread. """
                                 },
                             ],
                         }
-                    ],
-                    max_completion_tokens=200,
+                    ]
                 )
             else:
                 response = self.client.chat.completions.create(
-                    model=model,
+                    model=model.lower(),
                     messages=[
                         {"role": "system", "content": system_content},
                         {"role": "user", "content": user_content}
-                    ],
-                    max_completion_tokens=200,
+                    ]
                 )
 
             logging_module.log_success(f"Response: {response.choices[0].message.content}")
@@ -124,9 +122,8 @@ file that is uploaded in the thread. """
             logging_module.log_error(f"Error: {e}")
             return f"Error-BDIA: {e}"
         except openai.APIError as e:
-            if e.http_status == 429:
-                logging_module.log_error(f"Error: {e}")
-                return f"Error-BDIA: {e}"
+            logging_module.log_error(f"Error: {e}")
+            return f"Error-BDIA: {e}"
         except Exception as e:
             logging_module.log_error(f"An unexpected error occurred: {str(e)}")
             return f"Error-BDIA: {e}"
@@ -152,7 +149,7 @@ file that is uploaded in the thread. """
 
             file_assistant = self.client.beta.assistants.create(
                 instructions=self.assistant_instruction + system_content,
-                model=model,
+                model=model.lower(),
                 tools=[{"type": "file_search"}],
             )
 
@@ -178,7 +175,6 @@ file that is uploaded in the thread. """
             run = self.client.beta.threads.runs.create_and_poll(
                 thread_id=empty_thread.id,
                 assistant_id=file_assistant.id,
-                max_completion_tokens=200,
             )
 
             logging_module.log_success(f"Run executed with ID: {run.id}")
@@ -200,9 +196,8 @@ file that is uploaded in the thread. """
             logging_module.log_error(f"Error: {e}")
             return f"Error-BDIA: {e}"
         except openai.APIError as e:
-            if e.http_status == 429:
-                logging_module.log_error(f"Error: {e}")
-                return f"Error-BDIA: {e}"
+            logging_module.log_error(f"Error: {e}")
+            return f"Error-BDIA: {e}"
         except Exception as e:
             logging_module.log_error(f"An unexpected error occurred: {str(e)}")
             return f"Error-BDIA: {e}"
@@ -228,7 +223,7 @@ file that is uploaded in the thread. """
 
             file_assistant = self.client.beta.assistants.create(
                 instructions=self.assistant_instruction + system_content,
-                model=model,
+                model=model.lower(),
                 tools=[{"type": "code_interpreter"}],
             )
 
@@ -254,7 +249,6 @@ file that is uploaded in the thread. """
             run = self.client.beta.threads.runs.create_and_poll(
                 thread_id=empty_thread.id,
                 assistant_id=file_assistant.id,
-                max_completion_tokens=200,
             )
 
             logging_module.log_success(f"Run executed with ID: {run.id}")
@@ -276,9 +270,8 @@ file that is uploaded in the thread. """
             logging_module.log_error(f"Error: {e}")
             return f"Error-BDIA: {e}"
         except openai.APIError as e:
-            if e.http_status == 429:
-                logging_module.log_error(f"Error: {e}")
-                return f"Error-BDIA: {e}"
+            logging_module.log_error(f"Error: {e}")
+            return f"Error-BDIA: {e}"
         except Exception as e:
             logging_module.log_error(f"An unexpected error occurred: {str(e)}")
             return f"Error-BDIA: {e}"
@@ -307,9 +300,8 @@ file that is uploaded in the thread. """
             logging_module.log_error(f"Error: {e}")
             return f"Error-BDIA: {e}"
         except openai.APIError as e:
-            if e.http_status == 429:
-                logging_module.log_error(f"Error: {e}")
-                return f"Error-BDIA: {e}"
+            logging_module.log_error(f"Error: {e}")
+            return f"Error-BDIA: {e}"
         except Exception as e:
             logging_module.log_error(f"An unexpected error occurred: {str(e)}")
             return f"Error-BDIA: {e}"
