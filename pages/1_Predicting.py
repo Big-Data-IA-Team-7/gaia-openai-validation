@@ -1,14 +1,17 @@
+# This Python script sets up a Streamlit interface for generating predictions using the OpenAI API.
+# It initializes session state variables for data retrieval, interacts with a database to fetch data, and manages
+# user inputs through a sidebar for filtering by difficulty level. The script also handles interactions with the OpenAI 
+# client for generating model responses and logs actions to monitor the usage of this prediction page.
+
 import streamlit as st
 import re
-from data.data_read import insert_model_response
-from datetime import datetime
-from data.data_s3 import download_file, process_data_and_generate_url, RETRIEVAL_EXT, CI_EXT, IMG_EXT, MP3_EXT, ERR_EXT
 import json
+from datetime import datetime
+from data.data_s3 import download_file, process_data_and_generate_url, MP3_EXT
 from data.data_read import fetch_data_from_db
+from data.data_read import insert_model_response
 from openai_api.openai_api_call import OpenAIClient
-from project_logging import logging_module
-
-logging_module.log_success("Predicting Page")
+from openai_api.openai_api_streamlit import ask_gpt, answer_validation_check
 
 # Initialize session state for the data
 if 'data_frame' not in st.session_state:
@@ -34,21 +37,50 @@ with st.sidebar:
     )
 
 @st.fragment
-def download_fragment(file_name):
-    """Fragment containing the download button to avoid full app rerun."""
+def download_fragment(file_name: str) -> None:
+    """
+    A Streamlit fragment that displays a download button for the specified file.
+
+    Args:
+        file_name (str): The name of the file to be made available for download.
+
+    Returns:
+        None
+    """
     st.download_button('Download file', file_name, file_name=file_name, key="download_file_button")
 
 @st.fragment
-def gpt_steps(question, answer, model, file):
+def gpt_steps(question: str, answer: str, model: str, file: dict) -> None:
+    """
+    Displays a toggle to provide steps and handles the wrong answer flow if activated.
+
+    Args:
+        question (str): The selected question.
+        answer (str): The provided answer.
+        model (str): The model used for generating responses.
+        file (dict): The file details for handling file-based prompts.
+
+    Returns:
+        None
+    """
     steps_on = st.toggle("**Provide Steps**")
     if steps_on:
         handle_wrong_answer_flow(st.session_state.data_frame, question, st.session_state.openai_client, answer, model, file)
 
-# Handle file processing and download
-def handle_file_processing(question_selected):
-    """Process and download the associated file for the selected question."""
-    file_name = process_data_and_generate_url(question_selected)
-    if file_name == 1:
+def handle_file_processing(question_selected: str, dataframe) -> dict:
+    """
+    Processes the associated file for the selected question and provides a download option.
+
+    Args:
+        question_selected (str): The question for which the associated file needs to be processed.
+        dataframe (pd.DataFrame): The DataFrame containing data for the selected question.
+
+    Returns:
+        dict: A dictionary containing the details of the downloaded file if successful.
+        None: Returns None if no file is associated with the selected question.
+    """
+    file_name = process_data_and_generate_url(question_selected, dataframe)
+    if file_name == "1":
         st.write('**No file is associated with this question**')
         return None
     else:
@@ -56,41 +88,21 @@ def handle_file_processing(question_selected):
         download_fragment(loaded_file["path"])
         return loaded_file
 
-def ask_gpt(openai_client, system_content, question_selected, format_type, model, loaded_file=None, annotated_steps=None):
-    """Ask GPT for a response and store it in the session state."""
-    if format_type == 0:
-        validation_content = openai_client.format_content(format_type, question_selected)
-    elif format_type == 3:
-        validation_content = openai_client.format_content(format_type, question_selected, None, annotated_steps)
-    if loaded_file:
-        # print(loaded_file)
-        if loaded_file["extension"] in RETRIEVAL_EXT:
-            ai_response = openai_client.file_validation_prompt(loaded_file["path"], system_content, validation_content, model)
-        elif loaded_file["extension"] in CI_EXT:
-            ai_response = openai_client.ci_file_validation_prompt(loaded_file["path"], system_content, validation_content, model)
-        elif loaded_file["extension"] in IMG_EXT:
-            ai_response = openai_client.validation_prompt(system_content, validation_content, model, loaded_file["url"])
-        elif loaded_file["extension"] in ERR_EXT:
-            ai_response = "The LLM model currently does not support these file extensions."
-        else:
-            transcription = openai_client.stt_validation_prompt(loaded_file["path"])
-            if format_type == 1:
-                validation_content = openai_client.format_content(format_type, question_selected, transcription)
-            elif format_type == 2:
-                validation_content = openai_client.format_content(format_type, question_selected, transcription, annotated_steps)
-            ai_response = openai_client.validation_prompt(system_content, validation_content, model)
+def handle_wrong_answer_flow(data_frame, question_selected: str, openai_client, validate_answer: str, model: str, loaded_file: dict = None) -> None:
+    """
+    Handles the flow for handling wrong answers by displaying next steps and allowing the option to ask GPT again.
 
-    else:
-        # print(validation_content)
-        ai_response = openai_client.validation_prompt(system_content, validation_content, model)
-    
-    st.session_state.ai_response = ai_response
-    
-    return ai_response
+    Args:
+        data_frame (pd.DataFrame): The DataFrame containing questions and their associated metadata.
+        question_selected (str): The question for which the answer is being validated.
+        openai_client (OpenAIClient): The client instance used to interact with the OpenAI API.
+        validate_answer (str): The correct answer against which the GPT's response will be validated.
+        model (str): The model to be used for generating the response (e.g., "gpt-4").
+        loaded_file (dict, optional): The file details dictionary containing 'path' and 'extension' for handling file-based prompts. Defaults to None.
 
-# Show next steps or handle wrong predictions
-def handle_wrong_answer_flow(data_frame, question_selected, openai_client, validate_answer, model, loaded_file=None):
-    """Handle wrong answers by showing next steps or allowing GPT to be asked again."""
+    Returns:
+        None: This function does not return a value; it handles the logic of displaying results and updating session state.
+    """
     steps = data_frame[data_frame['Question'] == question_selected]
     steps = steps['Annotator Metadata'].iloc[0]
     steps_dict = json.loads(steps)
@@ -115,29 +127,41 @@ def handle_wrong_answer_flow(data_frame, question_selected, openai_client, valid
             st.success('GPT predicted the correct answer after the steps were provided.')
             insert_model_response(st.session_state.task_id_sel, datetime.now().date(), model, ann_ai_response, 'correct after steps')
 
-def button_click(button):
-     st.session_state[button] = True
+def button_click(button: str) -> None:
+    """
+    Sets the specified button's state to True in the Streamlit session state.
 
-def button_reset(button):
+    Args:
+        button (str): The key representing the button in the session state.
+
+    Returns:
+        None
+    """
+    st.session_state[button] = True
+
+def button_reset(button: str) -> None:
+    """
+    Resets the specified button's state to False in the Streamlit session state.
+
+    Args:
+        button (str): The key representing the button in the session state.
+
+    Returns:
+        None
+    """
     st.session_state[button] = False
 
-def answer_validation_check(final_answer,validation_answer):
-    final_answer = final_answer.strip().lower()
-    validation_answer = validation_answer.strip().lower()
-
-        # Check if final_answer consists only of numbers
-    if final_answer.isdigit():
-        # Convert validation_answer to a list of elements split by whitespace
-        validation_list = validation_answer.split()
-        
-        # Check if final_answer exists in the validation_list
-        return final_answer not in validation_list
-    else:
-        # If final_answer is not only numbers, perform the original check
-        return final_answer not in validation_answer
-
 def filter_questions(level_filter: str = None, extension_filter: str = None):
-    # Filtering based on conditions
+    """
+    Filters questions from the session state DataFrame based on the specified level and/or file extension.
+
+    Args:
+        level_filter (str, optional): The level to filter questions by. Defaults to None.
+        extension_filter (str, optional): The file extension to filter questions by. Defaults to None.
+
+    Returns:
+        pd.Series: A pandas Series containing the filtered questions.
+    """
     if level_filter and extension_filter:
         filtered_questions = st.session_state.data_frame[
             (st.session_state.data_frame['Level'] == level_filter) &
@@ -173,7 +197,7 @@ if question_selected:
 
         st.session_state.task_id_sel = task_id_sel
 
-        loaded_file = handle_file_processing(question_selected)
+        loaded_file = handle_file_processing(question_selected, st.session_state.data_frame)
 
         col1, col2 = st.columns(2)
 
@@ -207,6 +231,7 @@ if question_selected:
                     button_reset(st.session_state.gpt_button)
 
                 else: 
+                    
                     "**LLM Response:** " + ai_response
 
                     if  answer_validation_check(validate_answer,ai_response):

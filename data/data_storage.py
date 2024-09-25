@@ -1,3 +1,9 @@
+# This Python script manages data storage and retrieval operations, integrating with various cloud services such as 
+# AWS S3 for object storage, AWS RDS for MySQL database connections, and the Hugging Face API for dataset loading.
+# It uses environment variables to securely access cloud credentials and establishes connections for handling data 
+# interactions. Additionally, the script incorporates logging to monitor the storage operations, ensuring traceability
+# and error handling within the data storage processes.
+
 import os
 from datasets import load_dataset
 from huggingface_hub import login
@@ -6,15 +12,12 @@ import boto3
 import requests
 from mysql.connector import Error
 from sqlalchemy import create_engine, text
-from datetime import datetime
 from db_connection import get_db_connection
 from dotenv import load_dotenv
 import data_storage_log as logging_module
 
 # Load environment variables
 load_dotenv()
-
-
 
 # Getting environmental variables
 hugging_face_token = os.getenv('HUGGINGFACE_TOKEN')
