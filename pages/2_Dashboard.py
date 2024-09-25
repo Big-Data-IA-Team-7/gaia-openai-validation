@@ -57,8 +57,9 @@ def model_perf_table(dataframe: pd.DataFrame) -> None:
     grouped_df = dataframe.groupby(['model_used', 'Level', 'response_category']).size().unstack(fill_value=0).reset_index()
 
     if not grouped_df.empty:
-        grouped_df['total_correct'] = grouped_df['correct after steps'] + grouped_df['correct as-is']
-        grouped_df['total_questions'] = grouped_df['correct after steps'] + grouped_df['correct as-is'] + grouped_df['wrong answer']
+        # Use .get() to handle missing columns by providing a default value of 0
+        grouped_df['total_correct'] = grouped_df.get('correct after steps', 0) + grouped_df.get('correct as-is', 0)
+        grouped_df['total_questions'] = grouped_df['total_correct'] + grouped_df.get('wrong answer', 0)
 
         # Calculate the score for each level
         grouped_df['level_score'] = (grouped_df['total_correct'] / grouped_df['total_questions']) * 100
