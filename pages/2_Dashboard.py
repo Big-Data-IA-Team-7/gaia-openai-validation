@@ -1,3 +1,11 @@
+# This Python script creates a Streamlit-based dashboard for benchmarking model responses.
+# It reads data from a database and sets up an interactive visualization for users to explore.
+# The dashboard allows users to filter questions based on their level (e.g., Level 1, 2, 3, or Overall) 
+# and select different models to analyze their performance. The script merges data from two tables 
+# to display relevant metrics like response categories and model answers, then visualizes this information
+# using an Altair bar chart. The 'dashboard_dataframe' function handles displaying the data table and chart 
+# for the selected filters.
+
 import streamlit as st
 import pandas as pd
 from data.data_read import fetch_data_from_db, fetch_data_from_db_dashboards
@@ -9,7 +17,17 @@ st.session_state.data_frame_dashboard = fetch_data_from_db_dashboards()
 if 'data_frame' not in st.session_state:
     st.session_state.data_frame = fetch_data_from_db()
 
-def dashboard_dataframe(dataframe):
+def dashboard_dataframe(dataframe: pd.DataFrame) -> None:
+    """
+    Generates and displays a data table and a bar chart visualization for the given DataFrame
+    based on the response categories.
+
+    Args:
+        dataframe (pd.DataFrame): The DataFrame containing response categories and their counts.
+
+    Returns:
+        None
+    """
     overall=dataframe['response_category'].value_counts().reset_index()
     overall['response_category'] = overall['response_category'].str.upper()
     overall.columns = ["Response Category", "Number of Questions"]

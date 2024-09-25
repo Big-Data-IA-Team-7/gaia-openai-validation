@@ -1,16 +1,27 @@
+# This Python script provides functions to connect to a MySQL database and fetch data into pandas DataFrames.
+# It includes a function to retrieve data from the 'gaia_metadata_tbl' table, utilizing a separate database 
+# connection module. The script handles database connections, data retrieval, and logs the process using a 
+# logging module, ensuring that data fetching operations are monitored and recorded for debugging and auditing purposes.
+
 import mysql.connector
 import pandas as pd
 from data.db_connection import get_db_connection
 from datetime import datetime
-from mysql.connector import Error
+from project_logging import logging_module
 
-def fetch_data_from_db():
+def fetch_data_from_db() -> pd.DataFrame:
+    """
+    Fetches data from the 'gaia_metadata_tbl' table in the MySQL database and returns it as a pandas DataFrame.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the data fetched from the database, or None if an error occurs.
+    """
     try:
         # Connect to MySQL database
         mydb = get_db_connection()
         
         if mydb.is_connected():
-            print("Connected to the database")
+            logging_module.log_success("Connected to the database for fetching data.")
 
             # Create a cursor object
             mydata = mydb.cursor()
@@ -21,6 +32,8 @@ def fetch_data_from_db():
             # Fetch all the data
             myresult = mydata.fetchall()
 
+            logging_module.log_success("Fetched data from gaia_metadata_tbl")
+
             # Get column names
             columns = [col[0] for col in mydata.description]
 
@@ -30,24 +43,36 @@ def fetch_data_from_db():
             return df
 
     except mysql.connector.Error as e:
-        print(f"Error: {e}")
+        logging_module.log_error(f"Database error occurred: {e}")
+        return None
+
+    except Exception as e:
+        logging_module.log_error(f"An unexpected error occurred: {e}")
         return None
 
     finally:
-        if mydb.is_connected():
-            mydata.close()
-            mydb.close()
-            print("MySQL connection closed")
+        # Ensure that the cursor and connection are properly closed
+        try:
+            if mydb.is_connected():
+                mydata.close()
+                mydb.close()
+                logging_module.log_success("MySQL connection closed.")
+        except Exception as e:
+            logging_module.log_error(f"Error closing the MySQL connection: {e}")
 
-#Fetching the data for the dasboards
-def fetch_data_from_db_dashboards():
+def fetch_data_from_db_dashboards() -> pd.DataFrame:
+    """
+    Fetches data from the 'model_response' table in the MySQL database and returns it as a pandas DataFrame.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the data fetched from the 'model_response' table, or None if an error occurs.
+    """
     try:
         # Connect to MySQL database
-       # Connect to MySQL database
         mydb = get_db_connection()
         
         if mydb.is_connected():
-            print("Connected to the database")
+            logging_module.log_success("Connected to the database")
 
             # Create a cursor object for dashboards
             mydata_dashboard = mydb.cursor()
@@ -67,65 +92,76 @@ def fetch_data_from_db_dashboards():
             return df_dashboards
 
     except mysql.connector.Error as e:
-        print(f"Error: {e}")
+        logging_module.log_error(f"Database error occurred: {e}")
+        return None
+    except Exception as e:
+        logging_module.log_error(f"An unexpected error occurred: {e}")
         return None
 
     finally:
-        if mydb.is_connected():
-            mydata_dashboard.close()
-            mydb.close()
-            print("MySQL connection closed")
+        # Ensure that the cursor and connection are properly closed
+        try:
+            if mydb.is_connected():
+                mydata_dashboard.close()
+                mydb.close()
+                logging_module.log_success("MySQL connection closed.")
+        except Exception as e:
+            logging_module.log_error(f"Error closing the MySQL connection: {e}")
 
-# Function to insert a model's response into the database
-def insert_model_response(task_id, date, model_used, model_response, response_category, created_at=datetime.now(), created_by='streamlit user'):
+def insert_model_response(task_id: str, date: datetime, model_used: str, model_response: str, response_category: str,
+                          created_at: datetime = datetime.now(), created_by: str = 'streamlit user') -> None:
     """
-    Inserts a new record into the 'model_response' table.
+    Inserts a new record into the 'model_response' table in the MySQL database.
 
-    Parameters:
+    Args:
         task_id (str): The unique identifier for the task.
         date (str): The date when the task was created or processed (format: 'YYYY-MM-DD').
         model_used (str): The model used to generate the response (e.g., GPT-4).
         model_response (str): The response generated by the model.
         response_category (str): The category or type of the response.
         created_at (datetime, optional): The timestamp when the record is created. Defaults to the current datetime.
-        created_by (str, optional): The user/system creating the record. Defaults to 'system'.
-    
+        created_by (str, optional): The user/system creating the record. Defaults to 'streamlit user'.
+
     Returns:
         None
-    
-    Raises:
-        Error: Catches and prints any MySQL connection or query execution errors.
-    
-    Notes:
-        - This function connects to the MySQL database, executes an INSERT query, and commits the transaction.
-        - The database connection is closed after execution to prevent resource leaks.
     """
     try:
         # Establish connection to the MySQL database
         connection = get_db_connection()
 
-        # Create a cursor object to interact with the database
-        cursor = connection.cursor()
+        if connection.is_connected():
+            logging_module.log_success("Connected to the database for model response insertion.")
 
-        # SQL INSERT query to add a new row to the 'model_response' table
-        insert_query = """
-        INSERT INTO model_response (task_id, date, model_used, model_response, response_category, created_at, created_by)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """
+            # Create a cursor object to interact with the database
+            cursor = connection.cursor()
 
-        # Execute the query with the provided parameters
-        cursor.execute(insert_query, (task_id, date, model_used, model_response, response_category, created_at, created_by))
+            # SQL INSERT query to add a new row to the 'model_response' table
+            insert_query = """
+            INSERT INTO model_response (task_id, date, model_used, model_response, response_category, created_at, created_by)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """
 
-        # Commit the transaction to save the changes to the database
-        connection.commit()
+            # Execute the query with the provided parameters
+            cursor.execute(insert_query, (task_id, date, model_used, model_response, response_category, created_at, created_by))
 
-    except Error as e:
-        # Print the error message in case of a MySQL connection or execution error
-        print(f"Error while connecting to MySQL: {e}")
+            # Commit the transaction to save the changes to the database
+            connection.commit()
+            logging_module.log_success(f"Record inserted successfully for task_id {task_id}")
+
+    except mysql.connector.Error as e:
+        # Log the error message in case of a MySQL connection or execution error
+        logging_module.log_error(f"MySQL Error while connecting or executing query: {e}")
+
+    except Exception as e:
+        # Catch and log any other unforeseen errors
+        logging_module.log_error(f"An unexpected error occurred: {e}")
 
     finally:
         # Ensure that the cursor and the connection are closed properly to free up resources
-        if connection.is_connected():
-            cursor.close()
-            connection.close()
-            print("MySQL connection is closed.")
+        try:
+            if connection.is_connected():
+                cursor.close()
+                connection.close()
+                logging_module.log_success("MySQL connection is closed.")
+        except Exception as e:
+            logging_module.log_error(f"Error closing MySQL connection: {e}")
