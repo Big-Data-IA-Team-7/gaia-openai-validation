@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 from data.data_read import fetch_data_from_db, fetch_data_from_db_dashboards
 import altair as alt
 
@@ -27,8 +26,7 @@ with st.sidebar:
     
 if dash_selection:
     st.write(f'Dashboard based on {dash_selection} Selection')
-else:
-    st.write("You are now on Dashboard page. Please select Level")
+    
 # st.dataframe(merger_df)
 
 # Filter Model 

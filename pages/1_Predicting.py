@@ -1,10 +1,14 @@
 import streamlit as st
+import re
 from data.data_read import insert_model_response
 from datetime import datetime
 from data.data_s3 import download_file, process_data_and_generate_url, RETRIEVAL_EXT, CI_EXT, IMG_EXT, MP3_EXT, ERR_EXT
 import json
 from data.data_read import fetch_data_from_db
 from openai_api.openai_api_call import OpenAIClient
+from project_logging import logging_module
+
+logging_module.log_success("Predicting Page")
 
 # Initialize session state for the data
 if 'data_frame' not in st.session_state:
@@ -59,7 +63,7 @@ def ask_gpt(openai_client, system_content, question_selected, format_type, model
     elif format_type == 3:
         validation_content = openai_client.format_content(format_type, question_selected, None, annotated_steps)
     if loaded_file:
-        print(loaded_file)
+        # print(loaded_file)
         if loaded_file["extension"] in RETRIEVAL_EXT:
             ai_response = openai_client.file_validation_prompt(loaded_file["path"], system_content, validation_content, model)
         elif loaded_file["extension"] in CI_EXT:
@@ -77,7 +81,7 @@ def ask_gpt(openai_client, system_content, question_selected, format_type, model
             ai_response = openai_client.validation_prompt(system_content, validation_content, model)
 
     else:
-        print(validation_content)
+        # print(validation_content)
         ai_response = openai_client.validation_prompt(system_content, validation_content, model)
     
     st.session_state.ai_response = ai_response
@@ -113,6 +117,9 @@ def handle_wrong_answer_flow(data_frame, question_selected, openai_client, valid
 
 def button_click(button):
      st.session_state[button] = True
+
+def button_reset(button):
+    st.session_state[button] = False
 
 def answer_validation_check(final_answer,validation_answer):
     final_answer = final_answer.strip().lower()
@@ -166,22 +173,35 @@ if question_selected:
                                       label_visibility="collapsed"
         )
 
-        gpt_button_clicked = col2.button("Ask GPT", on_click=button_click, args=("ask_gpt_clicked",))
+        gpt_button_clicked = col2.button("Ask GPT", key="gpt_button", on_click=button_click, args=("ask_gpt_clicked",))
 
         if gpt_button_clicked:
-            if loaded_file and loaded_file["extension"] in MP3_EXT:
+            if not model_chosen:
+                button_reset(st.session_state.gpt_button)
+                st.error("Please choose a model")
+            else:  
+                if loaded_file and loaded_file["extension"] in MP3_EXT:
                     system_content = st.session_state.openai_client.audio_system_content
                     format_type = 1
-            else:
-                system_content = st.session_state.openai_client.val_system_content
-                format_type = 0
-            ai_response = ask_gpt(st.session_state.openai_client, system_content, question_selected, format_type, model_chosen, loaded_file)
+                else:
+                    system_content = st.session_state.openai_client.val_system_content
+                    format_type = 0
+                ai_response = ask_gpt(st.session_state.openai_client, system_content, question_selected, format_type, model_chosen, loaded_file)
 
-            "**LLM Response:** " + ai_response
+                if re.match(r"Error-BDIA", ai_response):
+                    st.error("GPT 4 does not work for file search")
+                    button_reset(st.session_state.gpt_button)
 
-            if  answer_validation_check(validate_answer,ai_response):
-                st.error("Sorry, GPT predicted the wrong answer. Do you need the steps?")
-                gpt_steps(question_selected, validate_answer, model_chosen, loaded_file)
-            else:
-                st.success("GPT predicted the correct answer.")
-                insert_model_response(task_id_sel, datetime.now().date(), model_chosen, ai_response, 'correct as-is')
+                elif ai_response== "The LLM model currently does not support these file extensions.":
+                    "**LLM Response:** " + ai_response
+                    button_reset(st.session_state.gpt_button)
+
+                else: 
+                    "**LLM Response:** " + ai_response
+
+                    if  answer_validation_check(validate_answer,ai_response):
+                        st.error("Sorry, GPT predicted the wrong answer. Do you need the steps?")
+                        gpt_steps(question_selected, validate_answer, model_chosen, loaded_file)
+                    else:
+                        st.success("GPT predicted the correct answer.")
+                        insert_model_response(task_id_sel, datetime.now().date(), model_chosen, ai_response, 'correct as-is')
