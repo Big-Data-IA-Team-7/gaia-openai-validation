@@ -4,6 +4,7 @@ from data.data_read import fetch_data_from_db
 import os
 import requests
 import tempfile
+from project_logging import logging_module
 
 # File Extensions
 RETRIEVAL_EXT = ['.docx', '.txt', '.pdf', '.pptx']
@@ -39,7 +40,7 @@ def generate_presigned_url(s3_url, expiration=3600):
                                                   ExpiresIn=expiration)
         return presigned_url
     except Exception as e:
-        print(f"Error generating pre-signed URL: {e}")
+        logging_module.log_error(f"Error generating pre-signed URL: {e}")
         return None
 # Fetch data from the database
 df = fetch_data_from_db()
@@ -53,7 +54,7 @@ def process_data_and_generate_url(Question):
             matching_rows = df[df['Question'] == Question]
             if not matching_rows.empty:
                 s3_url_variable = matching_rows['s3_url'].values[0]
-                print(s3_url_variable)
+                logging_module.log_success(f"S3 URL: {s3_url_variable}")
 
                 # Check if s3_url_variable is null
                 if s3_url_variable is not None:
@@ -61,16 +62,16 @@ def process_data_and_generate_url(Question):
                     presigned_url = generate_presigned_url(s3_url_variable, expiration=3600)  # URL valid for 1 hour
                     return presigned_url
                 else:
-                    print("No File is associated with this Question")
+                    logging_module.log_success("No File is associated with this Question")
                     return 1
             else:
-                print("No matching Question found")
+                logging_module.log_error("No matching Question found")
                 return 1
         else:
-            print("'s3_url' column not found in DataFrame")
+            logging_module.log_error("'s3_url' column not found in DataFrame")
             return 1
     else:
-        print("Failed to fetch data from the database")
+        logging_module.log_error("Failed to fetch data from the database")
     
     
 def download_file(url):
