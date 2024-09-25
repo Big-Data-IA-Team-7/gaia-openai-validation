@@ -124,7 +124,17 @@ def button_reset(button):
 def answer_validation_check(final_answer,validation_answer):
     final_answer = final_answer.strip().lower()
     validation_answer = validation_answer.strip().lower()
-    return final_answer not in validation_answer
+
+        # Check if final_answer consists only of numbers
+    if final_answer.isdigit():
+        # Convert validation_answer to a list of elements split by whitespace
+        validation_list = validation_answer.split()
+        
+        # Check if final_answer exists in the validation_list
+        return final_answer not in validation_list
+    else:
+        # If final_answer is not only numbers, perform the original check
+        return final_answer not in validation_answer
 
 def filter_questions(level_filter: str = None, extension_filter: str = None):
     # Filtering based on conditions
