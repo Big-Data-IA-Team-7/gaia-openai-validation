@@ -186,7 +186,7 @@ question_selected = st.selectbox(
         index=None,
     )
 
-model_options = ["gpt-4o", "gpt-4", "gpt-3.5-turbo"]
+model_options = ["GPT-4o", "GPT-4", "GPT-3.5-turbo"]
 
 if question_selected:
         st.text_area("**Selected Question**:", question_selected)

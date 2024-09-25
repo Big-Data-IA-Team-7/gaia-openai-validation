@@ -13,6 +13,14 @@ import altair as alt
 
 st.session_state.data_frame_dashboard = fetch_data_from_db_dashboards()
 
+with st.sidebar:
+    selected_level = st.selectbox(
+            "**Select a Level:**", 
+            ["Overall","Level 1", "Level 2","Level 3"],
+            index=None,
+            key="level_selector",
+        )
+
 # Initialize session state for the data
 if 'data_frame' not in st.session_state:
     st.session_state.data_frame = fetch_data_from_db()
@@ -43,20 +51,43 @@ def dashboard_dataframe(dataframe: pd.DataFrame) -> None:
     
     st.altair_chart(bar_chart, use_container_width=True)
 
+def model_perf_table(dataframe: pd.DataFrame) -> None:
+    st.header("OpenAI Model Performance", divider="gray")
+
+    grouped_df = dataframe.groupby(['model_used', 'Level', 'response_category']).size().unstack(fill_value=0).reset_index()
+
+    grouped_df['total_correct'] = grouped_df['correct after steps'] + grouped_df['correct as-is']
+    grouped_df['total_questions'] = grouped_df['correct after steps'] + grouped_df['correct as-is'] + grouped_df['wrong answer']
+
+    # Calculate the score for each level
+    grouped_df['level_score'] = (grouped_df['total_correct'] / grouped_df['total_questions']) * 100
+
+    # Calculate the average score across all levels for each model
+    average_scores_df = grouped_df.groupby('model_used').agg(
+        average_score=('level_score', 'mean'),
+        level_1_score=('level_score', lambda x: x[grouped_df['Level'] == '1'].mean() if '1' in grouped_df['Level'].values else 0),
+        level_2_score=('level_score', lambda x: x[grouped_df['Level'] == '2'].mean() if '2' in grouped_df['Level'].values else 0),
+        level_3_score=('level_score', lambda x: x[grouped_df['Level'] == '3'].mean() if '3' in grouped_df['Level'].values else 0)
+    ).reset_index()
+
+    st.dataframe(
+        average_scores_df,
+        hide_index=True,
+            column_config={
+        "model_used": "Model",
+        "average_score": "Average Score (%)",
+        "level_1_score": "Level 1 Score (%)",
+        "level_2_score": "Level 2 Score (%)",
+        "level_3_score": "Level 3 Score (%)",
+    })
+
 st.title("Dashboard")
 
 #Joining 2 table to the validate answer 
 merger_df=pd.merge(st.session_state.data_frame,st.session_state.data_frame_dashboard,on='task_id',how='inner')
 merger_df=merger_df[['task_id','Level','Final answer','model_used','model_response','response_category']]
 
- # Select Box for Dashboards
-with st.sidebar:
-    selected_level = st.selectbox(
-            "**Select a Level:**", 
-            ["Overall","Level 1", "Level 2","Level 3"],
-            index=None,
-            key="level_selector",
-        )
+model_perf_table(merger_df)
     
 if selected_level:
     st.header(f"Benchmarking on {selected_level} questions", divider="gray")
