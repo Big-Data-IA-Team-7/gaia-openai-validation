@@ -234,7 +234,9 @@ if question_selected:
         model_chosen = col1.selectbox("**Model**",
                                       options=model_options,
                                       index=None,
-                                      label_visibility="collapsed"
+                                      label_visibility="collapsed",
+                                      on_change=button_reset,
+                                      args=("ask_gpt_clicked",)
         )
         try:
             col2.button("Ask GPT", on_click=button_click, args=("ask_gpt_clicked",))
