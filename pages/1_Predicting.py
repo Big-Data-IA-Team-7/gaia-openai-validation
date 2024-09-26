@@ -108,6 +108,18 @@ def buttons_reset(button_1: str, button_2: str) -> None:
     st.session_state[button_1] = False
     st.session_state[button_2] = False
 
+def manage_steps_widget() -> None:
+    """
+    Resets the specified buttons' state to False in the Streamlit session state.
+
+    Args:
+        None
+    Returns:
+        None
+    """
+    st.session_state["ask_gpt_clicked"] = True
+    st.session_state["ask_again_button_clicked"] = False
+
 def handle_file_processing(question_selected: str, dataframe) -> dict:
     """
     Processes the associated file for the selected question and provides a download option.
@@ -152,13 +164,11 @@ def handle_wrong_answer_flow(data_frame, question_selected: str, openai_client, 
     st.session_state.steps_text = st.text_area(
         '**Steps:**',
         steps_text,
-        on_change=button_click,
-        args=("ask_gpt_clicked",)
+        on_change=manage_steps_widget,
         )
 
     st.button("Ask GPT Again", on_click=button_click, args=("ask_again_button_clicked",))
     if st.session_state.ask_again_button_clicked:
-
         
         if loaded_file and loaded_file["extension"] in MP3_EXT:
             ann_ai_response = ask_gpt(openai_client, openai_client.ann_audio_system_content, 
