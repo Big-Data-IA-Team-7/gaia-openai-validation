@@ -11,10 +11,11 @@ GAIA-OPENAI-VALIDATION/
 │   └── db_connection.py
 ├── openai_api/
 │   └── openai_api_call.py
-├── streamlit/
-│   ├── streamlit_custom_css.py
-│   ├── streamlit_dashboard_page.py
-│   ├── streamlit_home_page.py
-│   └── streamlit_predicting_page.py
-├── app.py
+│   └── openai_api_streamlit.py
+├── pages/
+│   ├── 1_Predicting.py
+│   └── 2_Dashboard.py
+├── project_logging/
+│   └── logging_module.py
+├── Home.py
 ```
