@@ -27,50 +27,6 @@ if "ask_again_button_clicked" not in st.session_state:
 if "steps_text" not in st.session_state:
     st.session_state.steps_text = ""
 
-with st.sidebar:
-    level_filter = st.selectbox("**Difficulty Level**",
-                                sorted(st.session_state.data_frame['Level'].unique()),
-                                index=None,
-    )
-    
-    file_extensions = ['PDF', 'DOCX', 'TXT', 'PPTX', 'CSV', 'XLSX', 'PY', 'ZIP', 'JPG', 'PNG', 'PDB', 'JSONLD', 'MP3']
-    
-    extension_filter = st.selectbox("**Extension**",
-                                    file_extensions,
-                                    index=None,
-    )
-
-@st.fragment
-def download_fragment(file_name: str) -> None:
-    """
-    A Streamlit fragment that displays a download button for the specified file.
-
-    Args:
-        file_name (str): The name of the file to be made available for download.
-
-    Returns:
-        None
-    """
-    st.download_button('Download file', file_name, file_name=file_name, key="download_file_button")
-
-@st.fragment
-def gpt_steps(question: str, answer: str, model: str, file: dict) -> None:
-    """
-    Displays a toggle to provide steps and handles the wrong answer flow if activated.
-
-    Args:
-        question (str): The selected question.
-        answer (str): The provided answer.
-        model (str): The model used for generating responses.
-        file (dict): The file details for handling file-based prompts.
-
-    Returns:
-        None
-    """
-    steps_on = st.toggle("**Provide Steps**")
-    if steps_on:
-        handle_wrong_answer_flow(st.session_state.data_frame, question, st.session_state.openai_client, answer, model, file)
-
 def button_click(button: str) -> None:
     """
     Sets the specified button's state to True in the Streamlit session state.
@@ -119,6 +75,52 @@ def manage_steps_widget() -> None:
     """
     st.session_state["ask_gpt_clicked"] = True
     st.session_state["ask_again_button_clicked"] = False
+
+with st.sidebar:
+    level_filter = st.selectbox("**Difficulty Level**",
+                                sorted(st.session_state.data_frame['Level'].unique()),
+                                index=None,
+                                on_change=button_reset,
+                                args=("ask_gpt_clicked",)
+    )
+    
+    file_extensions = ['PDF', 'DOCX', 'TXT', 'PPTX', 'CSV', 'XLSX', 'PY', 'ZIP', 'JPG', 'PNG', 'PDB', 'JSONLD', 'MP3']
+    
+    extension_filter = st.selectbox("**Extension**",
+                                    file_extensions,
+                                    index=None,
+    )
+
+@st.fragment
+def download_fragment(file_name: str) -> None:
+    """
+    A Streamlit fragment that displays a download button for the specified file.
+
+    Args:
+        file_name (str): The name of the file to be made available for download.
+
+    Returns:
+        None
+    """
+    st.download_button('Download file', file_name, file_name=file_name, key="download_file_button")
+
+@st.fragment
+def gpt_steps(question: str, answer: str, model: str, file: dict) -> None:
+    """
+    Displays a toggle to provide steps and handles the wrong answer flow if activated.
+
+    Args:
+        question (str): The selected question.
+        answer (str): The provided answer.
+        model (str): The model used for generating responses.
+        file (dict): The file details for handling file-based prompts.
+
+    Returns:
+        None
+    """
+    steps_on = st.toggle("**Provide Steps**")
+    if steps_on:
+        handle_wrong_answer_flow(st.session_state.data_frame, question, st.session_state.openai_client, answer, model, file)
 
 def handle_file_processing(question_selected: str, dataframe) -> dict:
     """
