@@ -10,7 +10,7 @@ This project presents a web-based application that validates test cases from the
 
 - **Google Codelab**: [Codelab Link](https://codelabs-preview.appspot.com/?file_id=1KwPr7VIQyALeQtxgZByGq4Vxe8GnI5_oMPFem20HR4Y#0)
 - **App (Streamlit Cloud)**: [Streamlit Link](https://gaia-openai-validation-apmepvhff4kwcxfy687eqr.streamlit.app/)
-- **YouTube Demo**: [Demo Link](https://www.youtube.com/watch?v=examplelink)
+- **YouTube Demo**: [Demo Link]([https://www.youtube.com/watch?v=examplelink](https://youtu.be/XyujyicHOaA))
 
 ---
 
