@@ -88,7 +88,7 @@ GAIA-OPENAI-VALIDATION/
 | Name                         | Contribution                                                                    |
 | ---------------------------- | ------------------------------------------------------------------------------- |
 | Pragnesh Anekal              | 33% - OpenAI API integration, Streamlit integration with API                    |
-| Ram Kumar Ramasamy Pandiaraj | 33% - AWS setup, Streamlit integration with AWS                                 |
+| Ram Kumar Ramasamy Pandiaraj | 33% - Load data into AWS (RDS, S3), Streamlit integration with AWS              |
 | Dipen Manoj Patel            | 33% - Streamlit UI for Predicting Page and Dashboard Page, reading data from DB |
 | Ramy Solanki                 | 33% - Streamlit UI design changes, error handling in Streamlit                  |
 
