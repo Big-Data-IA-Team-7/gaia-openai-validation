@@ -268,11 +268,11 @@ if question_selected:
                     if ai_response:
                         if re.match(r"Error-BDIA", ai_response):
                             st.error("GPT 4 does not work for file search")
-                            button_reset(st.session_state.gpt_button)
+                            button_reset(st.session_state.ask_gpt_clicked)
 
                         elif ai_response== "The LLM model currently does not support these file extensions.":
                             "**LLM Response:** " + ai_response
-                            button_reset(st.session_state.gpt_button)
+                            button_reset(st.session_state.ask_gpt_clicked)
 
                         else: 
                             
