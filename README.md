@@ -37,8 +37,8 @@ This project presents a web-based application that validates test cases from the
 
 ## Project Flow
 
-### Step 1: User Registration and Selection of Test Cases
-- Users log into the application and select a validation test case from the GAIA Dataset.
+### Step 1: Selection of Test Cases
+- The User opens the application and selects a validation test case from the GAIA Dataset.
 - Predefined questions and answers from the metadata table are displayed for user reference.
 
 ### Step 2: Sending Questions to OpenAI
@@ -56,19 +56,28 @@ This project presents a web-based application that validates test cases from the
 
 ```bash
 GAIA-OPENAI-VALIDATION/
+├── architecture_diagram/
+│   ├── input_icons/
+│   │   ├── flow_diagram.ipynb
+│   │   ├── flow_diagram.png
 ├── data/
 │   ├── data_read.py
 │   ├── data_s3.py
 │   ├── data_storage.py
+│   ├── data_storage_log.py
 │   └── db_connection.py
 ├── openai_api/
-│   └── openai_api_call.py
-├── streamlit/
-│   ├── streamlit_custom_css.py
-│   ├── streamlit_dashboard_page.py
-│   ├── streamlit_home_page.py
-│   └── streamlit_predicting_page.py
-├── app.py
+│   ├── openai_api_call.py
+│   └── openai_api_streamlit.py
+├── pages/
+│   ├── 1_Predicting.py
+│   └── 2_Dashboard.py
+├── project_logging/
+│   └── logging_module.py
+├── .env.example
+├── Home.py
+├── README.md
+└── requirements.txt
 
 ```
 
