@@ -10,7 +10,7 @@ This project presents a web-based application that validates test cases from the
 
 - **Google Codelab**: [Codelab Link](https://codelabs-preview.appspot.com/?file_id=1KwPr7VIQyALeQtxgZByGq4Vxe8GnI5_oMPFem20HR4Y#0)
 - **App (Streamlit Cloud)**: [Streamlit Link](https://gaia-openai-validation-apmepvhff4kwcxfy687eqr.streamlit.app/)
-- **YouTube Demo**: [Demo Link](https://www.youtube.com/watch?v=examplelink](https://youtu.be/XyujyicHOaA))
+- **YouTube Demo**: [Demo Link](<https://www.youtube.com/watch?v=examplelink](https://youtu.be/XyujyicHOaA)>)
 
 ---
 
@@ -26,7 +26,6 @@ This project presents a web-based application that validates test cases from the
 ![OpenAI](https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
 
-
 ---
 
 ## Architecture Diagram
@@ -38,14 +37,17 @@ This project presents a web-based application that validates test cases from the
 ## Project Flow
 
 ### Step 1: Selection of Test Cases
+
 - The User opens the application and selects a validation test case from the GAIA Dataset.
 - Predefined questions and answers from the metadata table are displayed for user reference.
 
 ### Step 2: Sending Questions to OpenAI
+
 - The selected question is submitted to the OpenAI GPT Model.
 - The OpenAI response is compared with the predefined answer.
 
 ### Step 3: Validating the Answer
+
 - **Correct-as-is**: If the response matches the predefined answer, it is categorized as such and saved to the model response table.
 - **Correct-after-steps**: If the response doesn't match, users can modify the validation steps and resubmit the question. If the modified response is correct, it’s saved as "Correct-after-steps."
 - **Wrong Answer**: If the response remains incorrect even after modification, it’s labeled as "Wrong Answer."
@@ -81,18 +83,14 @@ GAIA-OPENAI-VALIDATION/
 
 ```
 
-
 ## Contributions
 
-| Name                        | Contribution                                  |
-|-----------------------------|----------------------------------------------|
-| Pragnesh Anekal              | 33% - |
-| Ram Kumar Ramasamy Pandiaraj | 33% - |
-| Dipen Manoj Patel            | 33% -  |
-| Ramy Solanki                 | 33% - |
-
-
-
+| Name                         | Contribution                                                                    |
+| ---------------------------- | ------------------------------------------------------------------------------- |
+| Pragnesh Anekal              | 33% - OpenAI API integration, Streamlit integration with API                    |
+| Ram Kumar Ramasamy Pandiaraj | 33% - AWS setup, Streamlit integration with AWS                                 |
+| Dipen Manoj Patel            | 33% - Streamlit UI for Predicting Page and Dashboard Page, reading data from DB |
+| Ramy Solanki                 | 33% - Streamlit UI design changes, error handling in Streamlit                  |
 
 ## Attestation
 
